@@ -50,9 +50,47 @@ class QualityProjection:
 
 
 @dataclass(frozen=True)
+class LateOrder:
+    order_id: str
+    customer: str
+    product: str
+    due_hours: float  # from the end of the data
+    hours_late: float
+    penalty: float  # USD
+    shipped: bool  # False if it still hadn't shipped when the simulation ended
+
+
+@dataclass(frozen=True)
+class ScenarioOutcome:
+    """What happens to the machine's product over the cascade horizon in one scenario."""
+    late_orders: list[LateOrder]
+    penalties: float
+    excess_scrap_cost: float  # this machine's scrap above the normal defect rate
+    downtime_cost: float
+    repair_cost: float
+    inventory_breach_hours: float | None  # when stock first falls below safety stock
+    total_loss: float
+
+
+@dataclass(frozen=True)
+class Cascade:
+    """How a machine's possible failure spreads to quality, inventory, orders and money
+    (see factorymind.cascade)."""
+    product: str | None
+    failure_probability: float  # any component, next 24h
+    failure_at_hours: float  # assumed time of failure
+    downtime_hours: float
+    lost_units: float  # not produced while the machine is down
+    if_failure: ScenarioOutcome
+    if_no_failure: ScenarioOutcome
+    expected_loss: float  # weighted by failure_probability
+
+
+@dataclass(frozen=True)
 class AnalysisReport:
     machines: list[MachineSummary]  # riskiest first
     quality: dict[int, QualityProjection]  # by machine_id
+    cascade: dict[int, Cascade]  # by machine_id
     assumptions_used: dict[str, float]
     seed: int
     data_provenance: dict[str, str]  # table name -> "real" | "synthetic"

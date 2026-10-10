@@ -52,7 +52,7 @@ Each bundle's `manifest.json` records which tables are real or synthetic, and wh
 
 **Synthetic business data** (`factorymind/synthetic.py`) is generated from a seed, so the same seed always gives the same files:
 - Machines of the same model make the same product, so work can be rerouted between them.
-- Orders fall due 1–5 days after the data ends, and are sized so the plant runs close to capacity. Losing a machine for a shift makes some orders late.
+- Orders fall due 1–5 days after the data ends. Safety stock is 2–4 hours of production. By each due date, demand uses the stock above safety level plus 90–95% of what the machines can make. So normal running ships on time and keeps safety stock intact, while losing a machine for a shift eats into safety stock and can make orders late.
 
 **To regenerate the bundles:**
 1. Download the [Kaggle dataset](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance) and unzip it into `data/raw/` (git-ignored).
@@ -123,7 +123,7 @@ defect(h) = min(MAX_RATE,
 
 - **wear(h)** = (hours since the oldest component was replaced + h) ÷ TYPICAL_LIFE_H
 - **drift** = the largest gap between a sensor's 24h average and the machine's own normal level (its median 24h average across the uploaded data), as a share of normal
-- **drift(h)** = drift now + its growth per hour over the last 24h × h. Drift never shrinks, so the defect rate never falls.
+- **drift(h)** = drift now + its growth per hour over the last 24h × min(h, TREND_HORIZON_H). One day of trend is projected two days ahead, then held flat. Drift never shrinks, so the defect rate never falls.
 - **scrap cost** = the sum over hours of units per hour (from the production schedule) × defect(h) × scrap cost per unit (a plant assumption, $15 by default)
 
 | Parameter | Value | Meaning |
@@ -135,6 +135,7 @@ defect(h) = min(MAX_RATE,
 | DRIFT_DEADBAND | 4% | sensor gaps below this are normal noise |
 | DRIFT_WEIGHT | 0.5 | added defect rate per unit of drift beyond the deadband |
 | DRIFT_CAP | 50% | drift beyond the deadband is capped here |
+| TREND_HORIZON_H | 48 | the last 24h drift trend is projected this many hours, then held flat |
 | ERROR_WEIGHT | 0.5% | added defect rate per error in the last 24h |
 | MAX_RATE | 50% | the defect rate never exceeds this |
 
@@ -147,6 +148,34 @@ Quality can also degrade *without* an imminent failure. Machine 72 in the same b
 All four sensors count toward drift. The spec mentioned only vibration and pressure, but comp2 problems show up in rotation.
 
 **Why this formula, and how the parameters were chosen:** see [ADR 0001](docs/adr/0001-quality-projection-formula.md). It covers the options considered, the rationale for each term, which parameters were tuned against the data and which are judgment calls, the limitations, and how to replace the formula with a model fitted to real defect data.
+
+## Cascade: what a failure would cause
+
+For each machine, FactoryMind simulates its product **hour by hour for a week** in two scenarios (`factorymind/cascade.py`):
+
+- **If it fails:** it stops at hour 12 (the middle of the 24h prediction window) for the repair time, and the repair restores normal quality.
+- **If it keeps running:** it produces at its projected defect rate.
+
+**How a scenario is simulated:**
+- Every machine making the product adds its *good* output each hour.
+- Orders ship first in, first out by due date. Safety stock can be used. It counts as breached when stock minus orders due but not yet shipped falls below it.
+- Late orders pay penalty per day × days late (part days count) × the penalty multiplier.
+
+**The losses:**
+- **Loss if it fails** = downtime + repair (part and labour) + penalties + excess scrap
+- **Loss if it keeps running** = penalties + excess scrap
+- **Expected loss** = p × the first + (1 − p) × the second
+
+Excess scrap is scrap above the normal 0.5% rate.
+
+**Example: machine 90 in `comp2_failure_building`** (>99% failure chance). If it fails:
+- 297 units aren't made, and P-200 falls below safety stock at 30h.
+- Order O-0001 ships late, with a $1,990 penalty.
+- Total loss: $24,420.
+
+If it keeps running, its degrading quality costs $10,890 of excess scrap. Expected loss: **$24,412**.
+
+**Why it's built this way:** see [ADR 0002](docs/adr/0002-cascade-simulation.md). It covers each modelling choice and the two demo-data fixes the cascade needed.
 
 ## Deploy to Cloud Run
 

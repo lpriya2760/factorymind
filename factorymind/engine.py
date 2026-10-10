@@ -6,6 +6,7 @@ from typing import Mapping
 
 from factorymind.assumptions import resolve_assumptions
 from factorymind.bundle import load_bundle
+from factorymind.cascade import CASCADE_HORIZON_H, build_cascades
 from factorymind.features import build_features
 from factorymind.predict import assess
 from factorymind.quality import project_quality
@@ -45,10 +46,20 @@ def analyze(
     ]
     summaries.sort(key=lambda m: (-m.max_risk, m.machine_id))
 
+    schedule = bundle.tables["production_schedule"]
+    scrap_cost = assumptions_used["scrap_cost_per_unit"]
+    cascades = build_cascades(
+        bundle.tables,
+        as_of=bundle.tables["telemetry"]["datetime"].max(),
+        failure_probability={m.machine_id: sum(m.component_risk.values()) for m in summaries},
+        quality=project_quality(features, schedule, scrap_cost, CASCADE_HORIZON_H),
+        assumptions=assumptions_used,
+    )
+
     return AnalysisReport(
         machines=summaries,
-        quality=project_quality(features, bundle.tables["production_schedule"],
-                                assumptions_used["scrap_cost_per_unit"], quality_horizon_hours),
+        quality=project_quality(features, schedule, scrap_cost, quality_horizon_hours),
+        cascade=cascades,
         assumptions_used=assumptions_used,
         seed=seed,
         data_provenance=bundle.provenance,

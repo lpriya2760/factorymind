@@ -8,6 +8,7 @@ import streamlit as st
 
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind import quality
+from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H
 from factorymind.engine import DEFAULT_QUALITY_HORIZON_H, analyze
 from factorymind.predict import MODEL_DIR
 
@@ -144,7 +145,7 @@ st.caption(
     f"Why: oldest component replaced {q.component_age_hours / 24:.0f} days ago · "
     f"{q.drift_sensor} is {q.drift:.1%} away from this machine's normal level{growth} · "
     f"{q.errors_24h} error(s) in the last 24h · {q.units_per_hour:.0f} units/hour scheduled · "
-    f"scrap costs ${report.assumptions_used['scrap_cost_per_unit']:,.0f} a unit"
+    f"scrap costs \\${report.assumptions_used['scrap_cost_per_unit']:,.0f} a unit"
 )
 
 with st.expander("How quality is projected"):
@@ -162,7 +163,9 @@ with st.expander("How quality is projected"):
         "- **wear(h)** = (hours since the oldest component was replaced + *h*) ÷ TYPICAL_LIFE_H\n"
         "- **drift** = the largest gap between a sensor's 24h average and this machine's own "
         "normal level (its median across the uploaded data), as a share of normal\n"
-        "- **drift(h)** = drift now + its growth per hour over the last 24h × *h* (never shrinks)\n"
+        "- **drift(h)** = drift now + its growth per hour over the last 24h × min(*h*, "
+        "TREND_HORIZON_H): a day's trend is projected two days ahead, then held flat. "
+        "Drift never shrinks.\n"
         "- **scrap cost** = Σ over the hours of units per hour × defect(h) × scrap cost per unit"
     )
     st.dataframe(
@@ -170,3 +173,88 @@ with st.expander("How quality is projected"):
                       for k, (v, m) in quality.PARAMETERS.items()]),
         hide_index=True, width="stretch",
     )
+
+st.markdown("#### What a failure would cause")
+c = report.cascade[machine_id]
+f, ok = c.if_failure, c.if_no_failure
+p = c.failure_probability
+p_text = ">99%" if p > 0.99 else "<1%" if p < 0.01 else f"{p:.0%}"
+
+
+def breach_text(hours):
+    return f"below safety stock in {hours:.0f}h" if hours is not None else "stays above safety stock"
+
+
+chain = st.columns(5)
+with chain[0].container(border=True):
+    st.markdown("**⚙️ Machine**")
+    st.metric("Failure in 24h", p_text)
+    st.caption(f"If it fails: down {c.downtime_hours:g}h from about hour {c.failure_at_hours:g}")
+with chain[1].container(border=True):
+    st.markdown("**🔧 Quality**")
+    st.metric("Excess scrap if it fails", f"${f.excess_scrap_cost:,.0f}")
+    st.caption(f"\\${ok.excess_scrap_cost:,.0f} if it keeps running for {CASCADE_HORIZON_H}h; "
+               "a repair restores normal quality")
+with chain[2].container(border=True):
+    st.markdown(f"**📦 Inventory ({c.product or 'no product'})**")
+    st.metric("Units not made", f"{c.lost_units:,.0f}")
+    st.caption(f"If it fails: {breach_text(f.inventory_breach_hours)}. "
+               f"If not: {breach_text(ok.inventory_breach_hours)}.")
+with chain[3].container(border=True):
+    st.markdown("**🚚 Orders**")
+    st.metric("Late if it fails", f"{len(f.late_orders)}")
+    st.caption(f"\\${f.penalties:,.0f} penalties if it fails. "
+               f"If not: {len(ok.late_orders)} late, \\${ok.penalties:,.0f}.")
+with chain[4].container(border=True):
+    st.markdown("**💰 Loss**")
+    st.metric("Expected loss", f"${c.expected_loss:,.0f}")
+    st.caption(f"\\${f.total_loss:,.0f} if it fails · \\${ok.total_loss:,.0f} if not, "
+               f"weighted by the {p_text} failure chance")
+
+def scenario_column(o):
+    return [str(len(o.late_orders)), breach_text(o.inventory_breach_hours).capitalize()] + [
+        f"${x:,.0f}" for x in (o.penalties, o.excess_scrap_cost, o.downtime_cost, o.repair_cost,
+                               o.total_loss)]
+
+
+st.dataframe(
+    pd.DataFrame(
+        {"If it fails": scenario_column(f), "If it keeps running": scenario_column(ok)},
+        index=["Late orders", "Safety stock", "Penalties", "Excess scrap", "Downtime",
+               "Repair", "Total loss"],
+    ),
+    width="stretch",
+)
+
+if f.late_orders:
+    st.markdown("**Orders late if it fails**")
+    st.dataframe(
+        pd.DataFrame([
+            {"Order": o.order_id, "Customer": o.customer, "Product": o.product,
+             "Due": f"in {o.due_hours:.0f}h",
+             "Hours late": o.hours_late if o.shipped else f"{o.hours_late:.0f}+ (not shipped)",
+             "Penalty ($)": o.penalty}
+            for o in f.late_orders
+        ]),
+        hide_index=True, width="stretch",
+    )
+
+with st.expander("How the cascade is simulated"):
+    st.markdown(
+        f"Hour 0 is the end of the uploaded data. FactoryMind simulates the next "
+        f"{CASCADE_HORIZON_H}h hour by hour, twice:\n\n"
+        f"- **If it fails**: it fails at hour {FAILURE_AT_H} (the middle of the 24h prediction "
+        "window) and is down for the repair time. Repair restores normal quality.\n"
+        "- **If it keeps running**: it keeps producing at its projected defect rate.\n\n"
+        "Every machine making the same product adds its *good* output each hour. Orders ship "
+        "first in, first out by due date when there is enough stock; safety stock can be used. "
+        "Safety stock is breached when stock minus orders due but not yet shipped falls below "
+        "it. A late order's penalty is penalty per day × days late (part days count) × the "
+        "penalty multiplier.\n\n"
+        "**Loss if it fails** = downtime + repair (part and labour) + penalties + excess scrap. "
+        "**Loss if it keeps running** = penalties + excess scrap. **Expected loss** weights "
+        "them by the failure chance. Excess scrap is scrap above the normal "
+        f"{quality.BASE_RATE:.1%} defect rate."
+    )
+    st.caption("Costs use the plant assumptions: " + ", ".join(
+        f"{k.replace('_', ' ')} {v:g}" for k, v in report.assumptions_used.items()))

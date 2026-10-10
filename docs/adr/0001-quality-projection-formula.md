@@ -82,9 +82,10 @@ Even a healthy machine makes some defective parts. The formula needs a floor so 
 
 **Weight: `DRIFT_WEIGHT = 0.5`** (half a point of defect rate per point of drift beyond the deadband). This was calibrated against the demo bundles so a machine drifting about 16% (like machine 90) gains about 6 points. A drift of around 24% (machine 72's pressure) gains about 10 points. Those are clearly abnormal levels, but not absurd. `DRIFT_CAP = 50%` stops extreme readings from running away.
 
-**Projecting drift forward.** `drift(h) = drift now + growth per hour × h`
+**Projecting drift forward.** `drift(h) = drift now + growth per hour × min(h, TREND_HORIZON_H)`
 
 - **Growth** is how much the gap widened over the last 24h, extended in a straight line. A straight line is the simplest projection we can defend from one day of trend. Anything more elaborate would claim more than one day of data supports.
+- **The trend is projected for at most 48h (`TREND_HORIZON_H`), then held flat.** This was added with the cascade (#6), which looks a week ahead. Healthy machines' sensor gaps wobble by 1–4% a day. Projected all week, that noise sent normal machines to as much as 16% defects (machine 59 in `healthy_fleet`, which has no failure for at least 14 days). One day of data supports about two days of projection, so after 48h the drift is held flat. The 48h numbers are unchanged. Machine 90's 168h projection fell from 26.5% to 13.0%.
 - **Growth is never negative.** An improving machine keeps its current drift rather than being projected to recover. That's deliberately pessimistic: we project "if it keeps running unattended", not "if it fixes itself". It also guarantees the defect curve never goes down, which the ticket requires.
 
 ### 4. Recent errors: `ERROR_WEIGHT × errors in the last 24h`, with `ERROR_WEIGHT = 0.5%`
@@ -121,7 +122,7 @@ Machine 72 is the interesting case. The failure model correctly says it's at low
 - **Good:** every number in the app can be traced to an input and a parameter, and the app shows the formula. The behaviour is predictable: the curve never decreases, stays within bounds, and older parts mean more scrap. The tests check all of this.
 - **Limitation:** the parameters are **calibrated by judgment against simulated data, not fitted to real defects**. The *ranking* of machines (which ones are degrading) is well supported by real sensor and maintenance signals. The *absolute* percentages are illustrative.
 - **Limitation:** the terms are added together. In reality, wear and drift probably make each other worse.
-- **Limitation:** the straight-line drift projection is crude beyond a day or two. That's why the horizon is capped at 168h and the defect rate at 50%.
+- **Limitation:** the straight-line drift projection is crude beyond a day or two. That's why the trend is held flat after 48h, the horizon is capped at 168h and the defect rate at 50%.
 
 ## How to replace it with real data
 
