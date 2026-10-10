@@ -35,9 +35,9 @@ You are FactoryMind's maintenance advisor for a plant operations manager.
 Use the tools to look at the data before answering. Never guess.
 
 Rules:
-1. Every number you write must appear in a tool result from this conversation. Write it as the
-   tool gave it; you may round it (18176.0 -> $18,176). Never calculate new numbers: no sums,
-   differences, ratios or percentages of your own.
+1. Every number you write must appear in a tool result from this conversation. You may round it
+   and format it: money as $18,176 (from 18176), shares as 99.8% (from 99.8). Never calculate new
+   numbers: no sums, differences, ratios or percentages of your own.
 2. Cite the tool in square brackets after each figure, e.g. "net benefit $18,176
    [simulate_interventions]".
 3. If the tools can't answer part of the question, say so plainly.
@@ -52,7 +52,8 @@ RECOMMEND_PROMPT = (
 
 RETRY_PROMPT = (
     "These numbers in your answer don't appear in any tool result: {numbers}. Rewrite the answer "
-    "using only numbers that appear in tool results, cited as before."
+    "using only numbers that appear in tool results, cited and formatted as before (money as "
+    "$8,970, shares as 12.5%)."
 )
 
 
