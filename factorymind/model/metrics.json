@@ -1,0 +1,49 @@
+{
+  "components": {
+    "comp1": {
+      "auc": 1.0,
+      "precision": 0.9231,
+      "recall": 1.0,
+      "support": 408
+    },
+    "comp2": {
+      "auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 686
+    },
+    "comp3": {
+      "auc": 1.0,
+      "precision": 0.9673,
+      "recall": 1.0,
+      "support": 296
+    },
+    "comp4": {
+      "auc": 1.0,
+      "precision": 0.9921,
+      "recall": 0.9974,
+      "support": 380
+    }
+  },
+  "macro_auc": 1.0,
+  "any_failure_auc": 1.0,
+  "risk_levels": {
+    "high": {
+      "threshold": 0.5,
+      "share_of_readings_flagged": 0.0187,
+      "precision": 0.9757,
+      "recall": 0.9994
+    },
+    "medium_or_high": {
+      "threshold": 0.2,
+      "share_of_readings_flagged": 0.0193,
+      "precision": 0.945,
+      "recall": 1.0
+    }
+  },
+  "train_period": "2015-01-01 to 2015-09-01",
+  "test_period": "2015-09-02 to 2016-01-01",
+  "train_rows": 194200,
+  "test_rows": 97100,
+  "sample_every_hours": 3
+}

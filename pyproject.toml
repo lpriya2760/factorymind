@@ -7,6 +7,8 @@ dependencies = [
     "numpy>=2.5.3",
     "pandas>=3.0.6",
     "streamlit>=1.65.0",
+    "xgboost>=3.4.1 ; sys_platform != 'linux'",
+    "xgboost-cpu>=3.4.1 ; sys_platform == 'linux'",
 ]
 
 [dependency-groups]

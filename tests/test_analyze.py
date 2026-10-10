@@ -35,9 +35,9 @@ def edit(files, name, old, new):
 
 # --- valid bundles ---------------------------------------------------------------------------
 
-def test_valid_bundle_lists_machines_sorted_by_id(files):
+def test_valid_bundle_lists_every_machine(files):
     report = analyze(files)
-    assert [(m.machine_id, m.model, m.age) for m in report.machines] == [
+    assert sorted((m.machine_id, m.model, m.age) for m in report.machines) == [
         (1, "model3", 18),
         (2, "model4", 7),
     ]
@@ -65,8 +65,10 @@ def test_seed_is_echoed(files):
 
 
 def test_report_serialises_to_plain_dict(files):
-    d = analyze(files).to_dict()
-    assert d["machines"][0] == {"machine_id": 1, "model": "model3", "age": 18}
+    machine = analyze(files).to_dict()["machines"][0]
+    assert set(machine) == {"machine_id", "model", "age", "component_risk", "top_drivers",
+                            "risk_level"}
+    assert set(machine["component_risk"]) == {"comp1", "comp2", "comp3", "comp4"}
 
 
 # --- validation errors -----------------------------------------------------------------------
@@ -107,6 +109,11 @@ def test_unknown_machine_ids(files):
     errors = errors_for(files)
     assert has_error(errors, "telemetry", "machineID", "not in machines.csv: 99")
     assert has_error(errors, "production_schedule", "machine_id", "not in machines.csv: 7")
+
+
+def test_machine_without_telemetry(files):
+    edit(files, "machines.csv", "1,model3,18", "1,model3,18\n3,model1,4")
+    assert has_error(errors_for(files), "telemetry", "machineID", "no readings for machine IDs: 3")
 
 
 def test_duplicate_machine_ids(files):
