@@ -1,16 +1,23 @@
 """FactoryMind Streamlit UI. All analysis goes through factorymind.engine.analyze()."""
 
+import hashlib
 import json
 from dataclasses import asdict
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+from dotenv import load_dotenv
 
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind import quality
+from factorymind.agent import recommend
 from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H
 from factorymind.engine import DEFAULT_QUALITY_HORIZON_H, analyze
 from factorymind.predict import MODEL_DIR
+
+# Local development reads GOOGLE_API_KEY from .env; Cloud Run uses Vertex AI settings instead.
+load_dotenv(Path(__file__).with_name(".env"))
 
 st.set_page_config(page_title="FactoryMind", page_icon="🏭", layout="wide")
 st.title("FactoryMind")
@@ -309,3 +316,32 @@ with st.expander("How each action is simulated"):
         "output that isn't made anywhere costs the downtime cost per hour.\n\n"
         + "\n".join(f"- **{o.label}**: {o.note}" for o in options)
     )
+
+st.markdown("#### 🤖 Gemini's recommendation")
+bundle_key = hashlib.sha256(b"".join(u.getvalue() for u in uploads)).hexdigest()[:16]
+recs = st.session_state.setdefault("recommendations", {})
+rec_key = (bundle_key, machine_id)
+if st.button("Ask Gemini what to do", key=f"ask-{machine_id}", type="primary"):
+    with st.spinner("Gemini is checking the risk, the cascade and the options…"):
+        try:
+            recs[rec_key] = recommend({u.name: u.getvalue() for u in uploads}, machine_id)
+        except Exception as exc:  # noqa: BLE001 - shown to the operator, not swallowed
+            st.error(f"Gemini couldn't answer right now: {exc}")
+rec = recs.get(rec_key)
+if rec is None:
+    st.caption("Gemini reads the same analysis through tools and explains the best action. "
+               "Every figure it quotes is checked against what the tools returned.")
+else:
+    with st.container(border=True):
+        st.markdown(rec.text.replace("$", "\\$"))
+    if rec.unverified_numbers:
+        st.warning("Couldn't verify these figures against the tool results: "
+                   + ", ".join(rec.unverified_numbers))
+    else:
+        st.caption(f"✅ Every figure was checked against the tool results"
+                   f"{' after one rewrite' if rec.retried else ''} · {rec.model}")
+    with st.expander(f"Tools Gemini used ({len(rec.tool_calls)})"):
+        for call in rec.tool_calls:
+            args = ", ".join(f"{k}={v}" for k, v in call.args.items())
+            st.markdown(f"**`{call.name}({args})`**")
+            st.json(call.result, expanded=False)
