@@ -62,11 +62,17 @@ def test_inventory_and_orders_are_sane():
 
 
 def test_orders_keep_the_plant_near_capacity():
-    """Demand due within 5 days should exceed spare stock, so downtime would cause late orders."""
+    """By each due date, demand uses the stock above safety level plus 90–95% of capacity, so
+    normal running ships on time but downtime would eat into safety stock."""
     t = generate()
+    capacity = t["production_schedule"].groupby("product")["units_per_hour"].sum()
     for product, inv in t["inventory"].set_index("product").iterrows():
-        demand = t["orders"].loc[t["orders"]["product"] == product, "qty"].sum()
-        assert demand > inv["on_hand"] - inv["safety_stock"]
+        orders = t["orders"][t["orders"]["product"] == product].sort_values("due_date")
+        for due, demand in zip(orders["due_date"], orders["qty"].cumsum()):
+            hours = (due - AS_OF) / pd.Timedelta(hours=1)
+            made = capacity[product] * hours
+            spare = inv["on_hand"] - inv["safety_stock"]
+            assert spare + 0.88 * made < demand < spare + 0.97 * made
 
 
 def test_generated_data_passes_bundle_validation_as_synthetic():

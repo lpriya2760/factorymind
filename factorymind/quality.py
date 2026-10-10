@@ -9,7 +9,8 @@ A transparent formula rather than a learned model; public machine datasets have 
                     + ERROR_WEIGHT * errors in the last 24h)
 
     wear(h)  = (hours since the oldest component was replaced + h) / TYPICAL_LIFE_H
-    drift(h) = drift now + drift growth per hour (over the last 24h, never negative) * h
+    drift(h) = drift now + drift growth per hour (over the last 24h, never negative)
+                           * min(h, TREND_HORIZON_H)
     drift    = the largest relative gap between a sensor's 24h average and the machine's own
                normal level (its median 24h average across the uploaded data)
 
@@ -31,6 +32,8 @@ WEAR_CAP = 2.0  # wear beyond two lifetimes adds nothing more
 DRIFT_DEADBAND = 0.04  # sensor gaps under 4% are normal noise
 DRIFT_WEIGHT = 0.5  # added defect rate per unit of drift beyond the deadband
 DRIFT_CAP = 0.5
+# One day of trend supports projecting about two days; after that drift is held flat.
+TREND_HORIZON_H = 48
 ERROR_WEIGHT = 0.005  # added defect rate per error in the last 24h
 MAX_RATE = 0.5
 
@@ -43,6 +46,8 @@ PARAMETERS = {
     "DRIFT_DEADBAND": (DRIFT_DEADBAND, "sensor gaps below this are normal noise"),
     "DRIFT_WEIGHT": (DRIFT_WEIGHT, "added defect rate per unit of drift beyond the deadband"),
     "DRIFT_CAP": (DRIFT_CAP, "drift beyond the deadband is capped here"),
+    "TREND_HORIZON_H": (TREND_HORIZON_H,
+                        "the last 24h drift trend is projected this many hours, then held flat"),
     "ERROR_WEIGHT": (ERROR_WEIGHT, "added defect rate per error in the last 24h"),
     "MAX_RATE": (MAX_RATE, "the defect rate never exceeds this"),
 }
@@ -68,7 +73,7 @@ def project_quality(features: pd.DataFrame, schedule: pd.DataFrame, scrap_cost_p
         elapsed = (now["datetime"] - before["datetime"]) / pd.Timedelta(hours=1)
         growth = (max(0.0, (gaps_now[sensor] - _gap(before[f"{sensor}_mean_24h"], normal[sensor]))
                       / elapsed) if elapsed > 0 else 0.0)
-        drift = gaps_now[sensor] + growth * hours
+        drift = gaps_now[sensor] + growth * np.minimum(hours, TREND_HORIZON_H)
 
         errors = int(sum(now[c] for c in features.columns if c.endswith("_count_24h")))
         defect = np.minimum(

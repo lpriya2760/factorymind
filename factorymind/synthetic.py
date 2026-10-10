@@ -3,7 +3,10 @@
 Public machine datasets have no production schedule, inventory or customer orders, so we
 generate them consistently with a bundle's machines. Machines of the same model make the same
 product, so work can be rerouted between them. Orders are sized so the plant runs close to
-capacity: losing a machine for a shift makes some orders late, which is what the cascade shows.
+capacity: safety stock is 2–4 hours of production, and by each due date demand uses the stock
+above safety level plus 90–95% of what the machines can make. Normal running ships on time and
+keeps safety stock intact; losing a machine for a shift eats into safety stock and can make
+orders late, which is what the cascade shows.
 """
 
 from __future__ import annotations
@@ -53,17 +56,17 @@ def generate_business_data(machines: pd.DataFrame, as_of: pd.Timestamp,
     for product, group in schedule.groupby("product", sort=True):
         capacity = group["units_per_hour"].sum()  # units per hour across the product's machines
         on_hand = int(capacity * rng.uniform(12, 30))
-        safety_stock = int(on_hand * rng.uniform(0.25, 0.4))
+        safety_stock = int(capacity * rng.uniform(2, 4))  # hours of production
         inventory_rows.append((product, on_hand, safety_stock))
 
-        # Size orders so cumulative demand by each due date nearly uses up the stock above
-        # safety level plus everything the machines can make before then.
+        # Size orders so cumulative demand by each due date uses the stock above safety level
+        # plus 90–95% of what the machines can make before then.
         due_days = np.sort(rng.integers(1, 6, size=int(rng.integers(2, 5))))
         promised = 0
         for days in due_days:
             due = as_of.normalize() + pd.Timedelta(days=int(days))
             hours = (due - as_of) / pd.Timedelta(hours=1)
-            target = (on_hand - safety_stock) + capacity * hours * rng.uniform(0.85, 0.98)
+            target = (on_hand - safety_stock) + capacity * hours * rng.uniform(0.90, 0.95)
             qty = max(10, int(round((target - promised) / 10)) * 10)
             promised += qty
             order_rows.append((
