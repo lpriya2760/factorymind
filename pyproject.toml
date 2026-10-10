@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Predict machine failures, trace their cascade to quality, inventory and orders, and recommend the smallest action that prevents the largest loss."
 requires-python = ">=3.12"
 dependencies = [
+    "google-adk>=2.11.0",
     "numpy>=2.5.3",
     "pandas>=3.0.6",
+    "python-dotenv>=1.2.4",
     "streamlit>=1.65.0",
     "xgboost>=3.4.1 ; sys_platform != 'linux'",
     "xgboost-cpu>=3.4.1 ; sys_platform == 'linux'",

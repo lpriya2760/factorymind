@@ -195,6 +195,31 @@ For each machine, FactoryMind evaluates five options. Each one **re-runs the cas
 
 **Why it's built this way:** see [ADR 0003](docs/adr/0003-intervention-simulator.md). It covers why a replacement also resets the sensor features, and why slowing down can't use the model, because low rotation is a symptom of failure.
 
+## Gemini's recommendation
+
+In the machine view, **Ask Gemini what to do** runs an agent built with Google ADK (`factorymind/agent.py`). Gemini calls six tools over the analysis to see what matters, then writes a plain-language recommendation:
+- `get_risk_overview`
+- `get_machine_risk`
+- `project_quality`
+- `get_cascade`
+- `simulate_interventions`
+- `get_assumptions`
+
+The app shows which tools it called and what they returned.
+
+**Every figure is checked.** Gemini must quote only numbers that tools returned, and cite the tool. A guardrail then checks every number in the answer against the tool results. If any don't match, Gemini rewrites once; anything still unverified is flagged in the app, never shown silently.
+
+**Example (machine 90):** "Replace comp2 now while machine 47 covers… a net benefit of $18,176 [simulate_interventions] by avoiding $24,249 [simulate_interventions] at a cost of $6,074 [simulate_interventions]…"
+
+**Setup:**
+- **Locally:** put an AI Studio key in `.env` as `GOOGLE_API_KEY=...`.
+- **Cloud Run:** `deploy.sh` switches Gemini to Vertex AI in the project. It's configuration only, and no key is deployed.
+- **Models:** `gemini-3.8-flash`, falling back to `gemini-3.5-flash` when overloaded. Override with `FACTORYMIND_MODEL` and `FACTORYMIND_FALLBACK_MODELS`.
+
+**Tests:** they replace Gemini with a scripted model, so they run offline with no key.
+
+**Design:** see [ADR 0004](docs/adr/0004-gemini-agent.md).
+
 ## Deploy to Cloud Run
 
 Requirements:
