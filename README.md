@@ -132,7 +132,7 @@ defect(h) = min(MAX_RATE,
 | TYPICAL_LIFE_H | 4,320 (180 days) | typical component life |
 | WEAR_WEIGHT | 1% | added defect rate at one typical life; grows with wear² |
 | WEAR_CAP | 2 | wear beyond two lifetimes adds nothing more |
-| DRIFT_DEADBAND | 2% | sensor gaps below this are normal noise |
+| DRIFT_DEADBAND | 4% | sensor gaps below this are normal noise |
 | DRIFT_WEIGHT | 0.5 | added defect rate per unit of drift beyond the deadband |
 | DRIFT_CAP | 50% | drift beyond the deadband is capped here |
 | ERROR_WEIGHT | 0.5% | added defect rate per error in the last 24h |
@@ -140,9 +140,9 @@ defect(h) = min(MAX_RATE,
 
 **Example from `comp2_failure_building`, machine 90:**
 - Its rotation is 15.8% below normal and the gap is widening, and it logged 2 errors in the last 24h.
-- The defect rate goes from 8.5% now to 13.9% in 48h, which is $3,013 of scrap. The fleet median is 2.3%.
+- The defect rate goes from 7.5% now to 12.9% in 48h, which is $2,746 of scrap. The fleet median is 1.3%.
 
-Quality can also degrade *without* an imminent failure. Machine 72 in the same bundle runs with pressure 24% above normal and projects 11.6% defects, although it doesn't fail for months.
+Quality can also degrade *without* an imminent failure. Machine 72 in the same bundle runs with pressure 24% above normal and projects 10.6% defects, although it doesn't fail for months.
 
 All four sensors count toward drift. The spec mentioned only vibration and pressure, but comp2 problems show up in rotation.
 

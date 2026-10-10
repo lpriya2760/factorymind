@@ -58,7 +58,7 @@ Even a healthy machine makes some defective parts. The formula needs a floor so 
 - **Fix:** a **180-day life** (about the age of the oldest component on an old-but-normal machine) and a **1% weight**.
   - A component at one full life adds 1%. At the cap of two lives it adds 4%.
   - A 60-day-old part adds about 0.1%.
-  - The healthy fleet now sits at a median of about 2%, and degrading machines stand out.
+  - With the final 4% drift deadband, the healthy fleet's median is about 1%, and degrading machines stand out.
 
 ### 3. Sensor drift: `DRIFT_WEIGHT × min(max(drift − DEADBAND, 0), DRIFT_CAP)`
 
@@ -73,9 +73,14 @@ Even a healthy machine makes some defective parts. The formula needs a floor so 
 - **The single worst sensor.** As with wear, one bad parameter is enough to spoil output.
 - **All four sensors.** The spec said vibration and pressure, but in this dataset comp2 problems show up in **rotation**. Machine 90's rotation runs at 378 against a normal of about 450, 15.8% low. Leaving rotation out would have meant the main demo machine's quality didn't change at all.
 
-**Deadband: `DRIFT_DEADBAND = 2%`.** Sensors are never perfectly steady, and small gaps are noise. The 2% was chosen up front as a judgment call. Measured afterwards on `healthy_fleet`, normal machines drift **1.4–6.9%**, median about 3%. So 2% sits slightly *inside* normal noise, and ordinary machines pick up a small amount (typically 0–2.5 points) from this term. That's tolerable, because they still project far below degrading machines. **A 4% deadband would fit the observed noise better** and is a reasonable next tweak.
+**Deadband: `DRIFT_DEADBAND = 4%`.** Sensors are never perfectly steady, and small gaps are noise.
 
-**Weight: `DRIFT_WEIGHT = 0.5`** (half a point of defect rate per point of drift beyond the deadband). This was calibrated against the demo bundles so a machine drifting about 15% (like machine 90) gains about 6–7 points. A drift of around 25% (machine 72's pressure) gains about 11 points. Those are clearly abnormal levels, but not absurd. `DRIFT_CAP = 50%` stops extreme readings from running away.
+- **First choice: 2%,** made up front as a judgment call.
+- **What the data showed:** measured afterwards on `healthy_fleet`, normal machines drift **1.4–6.9%**, median about 3%. So 2% sat slightly *inside* normal noise, and ordinary machines picked up up to about 2.5 points of defects from this term.
+- **Change:** raised to **4%**, just above the typical normal drift. Only the noisiest normal machines (drift up to about 7%) now get anything from this term, at most about 1.5 points.
+- **Effect:** the `healthy_fleet` median fell from 1.8% to 0.9%, and the comp2 bundle's fleet median from 2.3% to 1.3%. Machine 90 went from 8.5% to 7.5% now, so it stands out more against the fleet.
+
+**Weight: `DRIFT_WEIGHT = 0.5`** (half a point of defect rate per point of drift beyond the deadband). This was calibrated against the demo bundles so a machine drifting about 16% (like machine 90) gains about 6 points. A drift of around 24% (machine 72's pressure) gains about 10 points. Those are clearly abnormal levels, but not absurd. `DRIFT_CAP = 50%` stops extreme readings from running away.
 
 **Projecting drift forward.** `drift(h) = drift now + growth per hour × h`
 
@@ -102,10 +107,10 @@ On the demo bundles, at 48h:
 
 | Machine | Situation | Now | 48h | Scrap (48h) |
 |---|---|---|---|---|
-| 90 (`comp2_failure_building`) | comp2 failing; rotation −15.8% and widening; 2 errors | 8.5% | 13.9% | $3,013 |
-| 72 (same bundle) | pressure +23.7%, *no* failure for 108 days | 11.6% | 13.4% | $3,640 |
-| fleet median, same bundle | normal | 2.3% | n/a | n/a |
-| `healthy_fleet` worst machine | normal | 3.0% | 7.1% | $1,410 |
+| 90 (`comp2_failure_building`) | comp2 failing; rotation −15.8% and widening; 2 errors | 7.5% | 12.9% | $2,746 |
+| 72 (same bundle) | pressure +23.7%, *no* failure for 108 days | 10.6% | 12.4% | $3,349 |
+| fleet median, same bundle | normal | 1.3% | 2.5% | n/a |
+| `healthy_fleet` worst machine | normal | 2.0% | 6.1% | $1,134 |
 
 Machine 72 is the interesting case. The failure model correctly says it's at low risk, but its quality is degrading. That's exactly why quality is a separate projection rather than being derived from failure risk.
 
