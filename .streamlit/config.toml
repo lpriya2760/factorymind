@@ -1,0 +1,7 @@
+[server]
+headless = true
+# Cloud Run rejects HTTP/1 request bodies over 32 MiB; the engine enforces 30 MB.
+maxUploadSize = 32
+
+[browser]
+gatherUsageStats = false
