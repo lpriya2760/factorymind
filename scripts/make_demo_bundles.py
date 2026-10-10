@@ -42,6 +42,8 @@ class Scenario:
     description: str
     end: pd.Timestamp
     at_risk: list[int]  # machines with a failure shortly after `end`
+    # Other machines must have no failure this long after `end`.
+    quiet_after: pd.Timedelta = HORIZON
 
 
 def main() -> None:
@@ -151,8 +153,9 @@ def healthy_fleet(raw) -> Scenario:
     end = pd.Timestamp("2015-06-30 18:00:00")
     return Scenario(
         "healthy_fleet",
-        "No machine fails during the data or the 24h after it. A calm baseline to compare with.",
-        end, [],
+        "No machine fails during the data or the 14 days after it. A calm baseline to compare "
+        "with.",
+        end, [], quiet_after=pd.Timedelta(days=14),
     )
 
 
@@ -161,7 +164,7 @@ def choose_machines(raw, scenario: Scenario, rng) -> list[int]:
     possible), then random healthy machines up to N_MACHINES."""
     start = scenario.end - WINDOW
     models = raw["machines"].set_index("machineID")["model"]
-    failing = set(failures_between(raw, start, scenario.end + HORIZON)["machineID"])
+    failing = set(failures_between(raw, start, scenario.end + scenario.quiet_after)["machineID"])
     healthy = sorted(m for m in models.index if m not in failing)
 
     chosen = list(scenario.at_risk)

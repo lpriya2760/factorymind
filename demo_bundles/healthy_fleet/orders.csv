@@ -1,13 +1,10 @@
 order_id,customer,product,qty,due_date,penalty_per_day,priority
-O-0001,Everline Packaging,P-100,1230,2015-07-02 00:00:00,1990.0,normal
-O-0002,Apex Auto,P-200,1510,2015-07-02 00:00:00,1450.0,high
-O-0003,Fjord Appliances,P-200,20,2015-07-02 00:00:00,210.0,low
-O-0004,Delta Pumps,P-400,11290,2015-07-02 00:00:00,1260.0,normal
-O-0005,Granite Tools,P-100,700,2015-07-03 00:00:00,1980.0,high
-O-0006,Bluefin Marine,P-100,10,2015-07-03 00:00:00,280.0,high
-O-0007,Apex Auto,P-300,5780,2015-07-03 00:00:00,1110.0,low
-O-0008,Everline Packaging,P-400,5620,2015-07-03 00:00:00,1420.0,high
-O-0009,Fjord Appliances,P-300,1730,2015-07-04 00:00:00,1280.0,high
-O-0010,Granite Tools,P-100,1320,2015-07-05 00:00:00,1040.0,low
-O-0011,Bluefin Marine,P-200,2350,2015-07-05 00:00:00,1780.0,normal
-O-0012,Delta Pumps,P-400,10550,2015-07-05 00:00:00,920.0,high
+O-0001,Everline Packaging,P-200,2880,2015-07-02 00:00:00,1990.0,normal
+O-0002,Apex Auto,P-300,4990,2015-07-02 00:00:00,1450.0,high
+O-0003,Fjord Appliances,P-300,90,2015-07-02 00:00:00,210.0,low
+O-0004,Granite Tools,P-200,1630,2015-07-03 00:00:00,1980.0,high
+O-0005,Bluefin Marine,P-200,10,2015-07-03 00:00:00,280.0,high
+O-0006,Apex Auto,P-400,15270,2015-07-03 00:00:00,1110.0,low
+O-0007,Fjord Appliances,P-400,4580,2015-07-04 00:00:00,1280.0,high
+O-0008,Granite Tools,P-200,3100,2015-07-05 00:00:00,1040.0,low
+O-0009,Bluefin Marine,P-300,7790,2015-07-05 00:00:00,1780.0,normal

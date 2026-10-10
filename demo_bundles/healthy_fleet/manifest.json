@@ -10,7 +10,7 @@
   },
   "scenario": {
     "name": "healthy_fleet",
-    "description": "No machine fails during the data or the 24h after it. A calm baseline to compare with.",
+    "description": "No machine fails during the data or the 14 days after it. A calm baseline to compare with.",
     "window_start": "2015-05-31 18:00:00",
     "as_of": "2015-06-30 18:00:00",
     "upcoming_failures": []

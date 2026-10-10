@@ -46,7 +46,7 @@ Tests run against the analysis engine's single entry point, `analyze(files, assu
 |---|---|
 | `comp2_failure_building` | One machine's comp2 fails 12h after the data ends; the rest of the fleet is healthy |
 | `two_machines_at_risk` | Two machines fail on different components within 24h of the data ending |
-| `healthy_fleet` | No failures, a calm baseline |
+| `healthy_fleet` | No machine fails during the data or in the 14 days after it, a calm baseline |
 
 Each bundle's `manifest.json` records which tables are real or synthetic, and which failures actually happen in the 24h after the data ends. The app ignores that ground truth; it's there so you know what the demo should show.
 
@@ -108,6 +108,43 @@ The script:
 4. exports it through a Cloud Storage bucket, converts it to JSON and rewrites `factorymind/model/`
 
 Add `--skip-train` to only re-evaluate the current model.
+
+## Quality projection
+
+For each machine, FactoryMind projects the **defect rate and scrap cost if it keeps running** for the next *N* hours (6–168, chosen in the app). Public machine datasets have no defect records, so this is a transparent formula, not a learned model (`factorymind/quality.py`):
+
+```
+defect(h) = min(MAX_RATE,
+                BASE_RATE
+                + WEAR_WEIGHT  × min(wear(h), WEAR_CAP)²
+                + DRIFT_WEIGHT × min(max(drift(h) − DRIFT_DEADBAND, 0), DRIFT_CAP)
+                + ERROR_WEIGHT × errors in the last 24h)
+```
+
+- **wear(h)** = (hours since the oldest component was replaced + h) ÷ TYPICAL_LIFE_H
+- **drift** = the largest gap between a sensor's 24h average and the machine's own normal level (its median 24h average across the uploaded data), as a share of normal
+- **drift(h)** = drift now + its growth per hour over the last 24h × h. Drift never shrinks, so the defect rate never falls.
+- **scrap cost** = the sum over hours of units per hour (from the production schedule) × defect(h) × scrap cost per unit (a plant assumption, $15 by default)
+
+| Parameter | Value | Meaning |
+|---|---|---|
+| BASE_RATE | 0.5% | defect rate of a healthy machine |
+| TYPICAL_LIFE_H | 4,320 (180 days) | typical component life |
+| WEAR_WEIGHT | 1% | added defect rate at one typical life; grows with wear² |
+| WEAR_CAP | 2 | wear beyond two lifetimes adds nothing more |
+| DRIFT_DEADBAND | 2% | sensor gaps below this are normal noise |
+| DRIFT_WEIGHT | 0.5 | added defect rate per unit of drift beyond the deadband |
+| DRIFT_CAP | 50% | drift beyond the deadband is capped here |
+| ERROR_WEIGHT | 0.5% | added defect rate per error in the last 24h |
+| MAX_RATE | 50% | the defect rate never exceeds this |
+
+**Example from `comp2_failure_building`, machine 90:**
+- Its rotation is 15.8% below normal and the gap is widening, and it logged 2 errors in the last 24h.
+- The defect rate goes from 8.5% now to 13.9% in 48h, which is $3,013 of scrap. The fleet median is 2.3%.
+
+Quality can also degrade *without* an imminent failure. Machine 72 in the same bundle runs with pressure 24% above normal and projects 11.6% defects, although it doesn't fail for months.
+
+All four sensors count toward drift. The spec mentioned only vibration and pressure, but comp2 problems show up in rotation.
 
 ## Deploy to Cloud Run
 
