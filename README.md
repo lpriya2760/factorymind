@@ -38,6 +38,30 @@ Tests run against the analysis engine's single entry point, `analyze(files, assu
 - **Upload options:** upload the files individually or as one `.zip`, up to 30 MB in total.
 - **Provenance:** add a `manifest.json` such as `{"provenance": {"orders": "real"}}` to override the assumed provenance.
 
+## Demo bundles
+
+`demo_bundles/` holds ready-to-upload bundles. Each has 10 machines × 30 days of real Azure PdM data plus synthetic business data, and comes as a folder and as a `.zip`:
+
+| Bundle | Scenario |
+|---|---|
+| `comp2_failure_building` | One machine's comp2 fails 12h after the data ends; the rest of the fleet is healthy |
+| `two_machines_at_risk` | Two machines fail on different components within 24h of the data ending |
+| `healthy_fleet` | No failures, a calm baseline |
+
+Each bundle's `manifest.json` records which tables are real or synthetic, and which failures actually happen in the 24h after the data ends. The app ignores that ground truth; it's there so you know what the demo should show.
+
+**Synthetic business data** (`factorymind/synthetic.py`) is generated from a seed, so the same seed always gives the same files:
+- Machines of the same model make the same product, so work can be rerouted between them.
+- Orders fall due 1–5 days after the data ends, and are sized so the plant runs close to capacity. Losing a machine for a shift makes some orders late.
+
+**To regenerate the bundles:**
+1. Download the [Kaggle dataset](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance) and unzip it into `data/raw/` (git-ignored).
+2. Run:
+
+```bash
+uv run python scripts/make_demo_bundles.py --seed 7
+```
+
 ## Deploy to Cloud Run
 
 Requirements:

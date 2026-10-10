@@ -1,0 +1,13 @@
+order_id,customer,product,qty,due_date,penalty_per_day,priority
+O-0001,Everline Packaging,P-100,3600,2015-08-20 00:00:00,1990.0,normal
+O-0002,Apex Auto,P-200,5950,2015-08-20 00:00:00,1450.0,high
+O-0003,Fjord Appliances,P-200,110,2015-08-20 00:00:00,210.0,low
+O-0004,Delta Pumps,P-400,2900,2015-08-20 00:00:00,1260.0,normal
+O-0005,Granite Tools,P-100,1450,2015-08-21 00:00:00,1980.0,high
+O-0006,Bluefin Marine,P-100,10,2015-08-21 00:00:00,280.0,high
+O-0007,Apex Auto,P-300,13290,2015-08-21 00:00:00,1110.0,low
+O-0008,Everline Packaging,P-400,980,2015-08-21 00:00:00,1420.0,high
+O-0009,Fjord Appliances,P-300,3130,2015-08-22 00:00:00,1280.0,high
+O-0010,Granite Tools,P-100,2730,2015-08-23 00:00:00,1040.0,low
+O-0011,Bluefin Marine,P-200,6660,2015-08-23 00:00:00,1780.0,normal
+O-0012,Delta Pumps,P-400,1870,2015-08-23 00:00:00,920.0,high

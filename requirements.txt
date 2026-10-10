@@ -40,6 +40,7 @@ narwhals==2.26.0
     # via altair
 numpy==2.5.3
     # via
+    #   factorymind
     #   pandas
     #   pydeck
     #   streamlit

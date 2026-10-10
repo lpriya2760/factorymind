@@ -1,0 +1,25 @@
+{
+  "provenance": {
+    "telemetry": "real",
+    "errors": "real",
+    "maint": "real",
+    "machines": "real",
+    "production_schedule": "synthetic",
+    "inventory": "synthetic",
+    "orders": "synthetic"
+  },
+  "scenario": {
+    "name": "comp2_failure_building",
+    "description": "Machine 90's comp2 fails 12h after the data ends. Its risk should stand out; the rest of the fleet is healthy.",
+    "window_start": "2015-04-19 18:00:00",
+    "as_of": "2015-05-19 18:00:00",
+    "upcoming_failures": [
+      {
+        "machineID": 90,
+        "comp": "comp2",
+        "datetime": "2015-05-20 06:00:00"
+      }
+    ]
+  },
+  "generated_by": "scripts/make_demo_bundles.py --seed 7"
+}
