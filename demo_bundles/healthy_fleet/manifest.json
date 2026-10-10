@@ -1,0 +1,19 @@
+{
+  "provenance": {
+    "telemetry": "real",
+    "errors": "real",
+    "maint": "real",
+    "machines": "real",
+    "production_schedule": "synthetic",
+    "inventory": "synthetic",
+    "orders": "synthetic"
+  },
+  "scenario": {
+    "name": "healthy_fleet",
+    "description": "No machine fails during the data or the 24h after it. A calm baseline to compare with.",
+    "window_start": "2015-05-31 18:00:00",
+    "as_of": "2015-06-30 18:00:00",
+    "upcoming_failures": []
+  },
+  "generated_by": "scripts/make_demo_bundles.py --seed 7"
+}

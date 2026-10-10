@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Predict machine failures, trace their cascade to quality, inventory and orders, and recommend the smallest action that prevents the largest loss."
 requires-python = ">=3.12"
 dependencies = [
+    "numpy>=2.5.3",
     "pandas>=3.0.6",
     "streamlit>=1.65.0",
 ]
