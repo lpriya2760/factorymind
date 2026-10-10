@@ -35,8 +35,24 @@ class MachineSummary:
 
 
 @dataclass(frozen=True)
+class QualityProjection:
+    """Defect rate if the machine keeps running, hour by hour (see factorymind.quality)."""
+    horizon_hours: list[int]  # 0, 1, ..., horizon
+    defect_rate: list[float]  # share of units defective at each hour
+    scrap_cost: float  # USD over the whole horizon
+    # The inputs behind the projection, so it can be explained.
+    units_per_hour: float
+    component_age_hours: float  # since the oldest component was replaced
+    drift: float  # largest relative gap from the machine's normal sensor level
+    drift_sensor: str
+    drift_growth_per_hour: float
+    errors_24h: int
+
+
+@dataclass(frozen=True)
 class AnalysisReport:
     machines: list[MachineSummary]  # riskiest first
+    quality: dict[int, QualityProjection]  # by machine_id
     assumptions_used: dict[str, float]
     seed: int
     data_provenance: dict[str, str]  # table name -> "real" | "synthetic"
