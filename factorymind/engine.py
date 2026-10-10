@@ -6,8 +6,9 @@ from typing import Mapping
 
 from factorymind.assumptions import resolve_assumptions
 from factorymind.bundle import load_bundle
-from factorymind.cascade import CASCADE_HORIZON_H, build_cascades
+from factorymind.cascade import CASCADE_HORIZON_H, build_cascades, prepare_plant
 from factorymind.features import build_features
+from factorymind.interventions import simulate_interventions
 from factorymind.predict import assess
 from factorymind.quality import project_quality
 from factorymind.report import AnalysisReport, MachineSummary
@@ -48,18 +49,17 @@ def analyze(
 
     schedule = bundle.tables["production_schedule"]
     scrap_cost = assumptions_used["scrap_cost_per_unit"]
+    week = project_quality(features, schedule, scrap_cost, CASCADE_HORIZON_H)
+    plant = prepare_plant(bundle.tables, as_of=bundle.tables["telemetry"]["datetime"].max(),
+                          quality=week, assumptions=assumptions_used)
     cascades = build_cascades(
-        bundle.tables,
-        as_of=bundle.tables["telemetry"]["datetime"].max(),
-        failure_probability={m.machine_id: sum(m.component_risk.values()) for m in summaries},
-        quality=project_quality(features, schedule, scrap_cost, CASCADE_HORIZON_H),
-        assumptions=assumptions_used,
-    )
+        plant, {m.machine_id: sum(m.component_risk.values()) for m in summaries})
 
     return AnalysisReport(
         machines=summaries,
         quality=project_quality(features, schedule, scrap_cost, quality_horizon_hours),
         cascade=cascades,
+        interventions=simulate_interventions(plant, features, summaries, week, cascades),
         assumptions_used=assumptions_used,
         seed=seed,
         data_provenance=bundle.provenance,

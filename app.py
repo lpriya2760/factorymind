@@ -258,3 +258,52 @@ with st.expander("How the cascade is simulated"):
     )
     st.caption("Costs use the plant assumptions: " + ", ".join(
         f"{k.replace('_', ' ')} {v:g}" for k, v in report.assumptions_used.items()))
+
+st.markdown("#### What to do about it")
+options = report.interventions[machine_id]
+best = options[0]
+if best.lever == "do_nothing":
+    st.success(f"**Best: do nothing.** No action pays for itself: the best alternative, "
+               f"*{options[1].label.lower()}*, would cost \\${options[1].cost:,.0f} to avoid "
+               f"\\${options[1].loss_avoided:,.0f} of expected loss.")
+else:
+    st.success(f"**Best: {best.label}.** Costs \\${best.cost:,.0f} and avoids "
+               f"\\${best.loss_avoided:,.0f} of expected loss: a net benefit of "
+               f"**\\${best.net_benefit:,.0f}**. {best.note}")
+
+DISRUPTION_LABELS = ["None", "Low", "Medium", "Medium-high", "High"]
+
+
+def money(x: float) -> str:
+    return f"−${-x:,.0f}" if x < 0 else f"${x:,.0f}"
+
+
+st.dataframe(
+    pd.DataFrame([
+        {
+            "Rank": o.rank,
+            "Action": o.label,
+            "Cost": money(o.cost),
+            "Failure chance after": (
+                (">99%" if o.failure_probability_after > 0.99
+                 else "<1%" if o.failure_probability_after < 0.01
+                 else f"{o.failure_probability_after:.0%}")
+                + (" (assumed)" if o.effect_basis == "assumption" else "")),
+            "Expected loss after": money(o.expected_loss_after),
+            "Loss avoided": money(o.loss_avoided),
+            "Net benefit": money(o.net_benefit),
+            "Disruption": DISRUPTION_LABELS[o.disruption],
+        }
+        for o in options
+    ]),
+    hide_index=True, width="stretch",
+)
+
+with st.expander("How each action is simulated"):
+    st.markdown(
+        "Every action changes the inputs and re-runs the same failure/no-failure cascade as "
+        "doing nothing. **Net benefit = loss avoided − the action's cost**. Ties go to the less "
+        "disruptive action. One accounting rule applies everywhere: each hour of a machine's "
+        "output that isn't made anywhere costs the downtime cost per hour.\n\n"
+        + "\n".join(f"- **{o.label}**: {o.note}" for o in options)
+    )

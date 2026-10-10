@@ -7,7 +7,8 @@ import pandas as pd
 import pytest
 
 from factorymind.assumptions import resolve_assumptions
-from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H, build_cascades, simulate_orders
+from factorymind.cascade import (CASCADE_HORIZON_H, FAILURE_AT_H, build_cascades, prepare_plant,
+                                 simulate_orders)
 from factorymind.engine import analyze
 from factorymind.quality import BASE_RATE
 from factorymind.report import QualityProjection
@@ -82,8 +83,9 @@ def healthy_quality():
 
 
 def cascade(p: float, qty: int = 100):
-    return build_cascades(tiny_tables(qty), pd.Timestamp("2015-01-01 00:00"), {1: p},
-                          healthy_quality(), resolve_assumptions())[1]
+    plant = prepare_plant(tiny_tables(qty), pd.Timestamp("2015-01-01 00:00"), healthy_quality(),
+                          resolve_assumptions())
+    return build_cascades(plant, {1: p})[1]
 
 
 def test_zero_failure_probability_means_zero_loss():
