@@ -1,0 +1,3 @@
+order_id,customer,product,qty,due_date,penalty_per_day,priority
+O-1,Acme,P-100,800,2015-01-03,500,high
+O-2,Globex,P-200,200,2015-01-05,150,normal

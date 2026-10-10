@@ -1,0 +1,21 @@
+[project]
+name = "factorymind"
+version = "0.1.0"
+description = "Predict machine failures, trace their cascade to quality, inventory and orders, and recommend the smallest action that prevents the largest loss."
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=3.0.6",
+    "streamlit>=1.65.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+# Raw dataset downloads are large; demo bundles are generated from them.
+data/raw/
+.DS_Store
+# Machine-specific dev server config
+.claude/launch.json
