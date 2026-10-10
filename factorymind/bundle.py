@@ -256,6 +256,11 @@ def _check_machine_ids(tables: dict[str, pd.DataFrame], errors: list[FieldError]
             if unknown:
                 errors.append(FieldError(
                     name, col, f"machine IDs not in machines.csv: {_list(unknown)}"))
+    if "telemetry" in tables:
+        silent = sorted(known - set(tables["telemetry"]["machineID"]))
+        if silent:
+            errors.append(FieldError("telemetry", "machineID",
+                                     f"no readings for machine IDs: {_list(silent)}"))
 
 
 def _list(values: list, limit: int = 5) -> str:

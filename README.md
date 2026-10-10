@@ -6,7 +6,7 @@ Built for the Google AI Builder Cup 2026 (Manufacturing). Spec: [#1](https://git
 
 ## Run locally
 
-Requires [uv](https://docs.astral.sh/uv/) (`brew install uv`). uv installs Python 3.12 and the dependencies.
+Requires [uv](https://docs.astral.sh/uv/) (`brew install uv`). uv installs Python 3.12 and the dependencies. On a Mac, XGBoost also needs the OpenMP runtime (`brew install libomp`).
 
 ```bash
 uv run streamlit run app.py
@@ -61,6 +61,53 @@ Each bundle's `manifest.json` records which tables are real or synthetic, and wh
 ```bash
 uv run python scripts/make_demo_bundles.py --seed 7
 ```
+
+## Failure model
+
+FactoryMind predicts which component (comp1–comp4), if any, fails on each machine **in the next 24 hours**.
+
+**Features** (`factorymind/features.py`, shared by training and the app). Each is computed at every machine's latest reading:
+- rolling 3h and 24h average and standard deviation of voltage, rotation, pressure and vibration
+- counts of each error type in the last 24h
+- hours since each component was last replaced
+- machine model and age
+
+**Model:** a BigQuery ML `BOOSTED_TREE_CLASSIFIER` with class weighting, since only about 2% of readings precede a failure.
+- **Training data:** every 3rd hour of Jan–Aug 2015.
+- **Test data:** Sep–Dec 2015, which the model never saw. There's a one-day gap between the two, so no 24h prediction window crosses from training into the test period.
+- **Running it:** the trained model is exported, converted to XGBoost JSON and runs inside the app with no network calls.
+- **Explanations:** the "Why" column comes from each prediction's per-feature contributions (SHAP values), compared with the rest of the uploaded fleet.
+
+**Held-out results** (`factorymind/model/metrics.json`):
+
+| Component | AUC | Precision | Recall | Failures in test window |
+|---|---|---|---|---|
+| comp1 | 1.00 | 0.92 | 1.00 | 408 |
+| comp2 | 1.00 | 1.00 | 1.00 | 686 |
+| comp3 | 1.00 | 0.97 | 1.00 | 296 |
+| comp4 | 1.00 | 0.99 | 1.00 | 380 |
+
+The "failures" column counts test readings (sampled every 3h) that fall within 24h of a failure.
+
+**What the warning looks like:** predicted risk is about 0 more than 36h before a failure. It starts climbing 24–30h before, and sits at about 0.99 for the whole final 24h.
+
+**Why the scores are so high:** the Azure dataset is simulated, and every failure is preceded by a clean, consistent sensor anomaly starting about a day before. A real plant's data is noisier, so expect lower scores. The pipeline is the same either way; retrain it on your own history.
+
+**Risk levels:** *high* means the riskiest component has a probability of 0.5 or more; *medium* means 0.2 or more. On the test period, "high" flags 1.9% of readings with 0.98 precision and 1.00 recall for "a failure in the next 24h".
+
+**To retrain** (needs gcloud signed in and the Kaggle data in `data/raw/`):
+
+```bash
+uv run python scripts/train_model.py
+```
+
+The script:
+1. builds the features and labels
+2. uploads the training rows to BigQuery (dataset `factorymind`)
+3. trains the model there, which takes about 20 minutes, mostly BigQuery ML start-up
+4. exports it through a Cloud Storage bucket, converts it to JSON and rewrites `factorymind/model/`
+
+Add `--skip-train` to only re-evaluate the current model.
 
 ## Deploy to Cloud Run
 

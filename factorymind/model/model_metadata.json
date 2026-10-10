@@ -1,0 +1,258 @@
+{
+	"class_names" : 
+	[
+		"none",
+		"comp4",
+		"comp3",
+		"comp2",
+		"comp1"
+	],
+	"feature_names" : 
+	[
+		"volt_mean_3h",
+		"rotate_mean_3h",
+		"pressure_mean_3h",
+		"vibration_mean_3h",
+		"volt_mean_24h",
+		"rotate_mean_24h",
+		"pressure_mean_24h",
+		"vibration_mean_24h",
+		"volt_std_3h",
+		"rotate_std_3h",
+		"pressure_std_3h",
+		"vibration_std_3h",
+		"volt_std_24h",
+		"rotate_std_24h",
+		"pressure_std_24h",
+		"vibration_std_24h",
+		"error1_count_24h",
+		"error2_count_24h",
+		"error3_count_24h",
+		"error4_count_24h",
+		"error5_count_24h",
+		"hours_since_comp1",
+		"hours_since_comp2",
+		"hours_since_comp3",
+		"hours_since_comp4",
+		"is_model1",
+		"is_model2",
+		"is_model3",
+		"is_model4",
+		"age"
+	],
+	"features" : 
+	{
+		"age" : 
+		{
+			"max" : 20,
+			"mean" : 11.33397891359159,
+			"min" : 0,
+			"stddev" : 5.827681413406176
+		},
+		"error1_count_24h" : 
+		{
+			"max" : 2,
+			"mean" : 0.02833486133394456,
+			"min" : 0,
+			"stddev" : 0.1678850163972471
+		},
+		"error2_count_24h" : 
+		{
+			"max" : 2,
+			"mean" : 0.02639239055695615,
+			"min" : 0,
+			"stddev" : 0.162712213102404
+		},
+		"error3_count_24h" : 
+		{
+			"max" : 2,
+			"mean" : 0.02302887921155122,
+			"min" : 0,
+			"stddev" : 0.1508716688681085
+		},
+		"error4_count_24h" : 
+		{
+			"max" : 2,
+			"mean" : 0.01944189777675908,
+			"min" : 0,
+			"stddev" : 0.139147337204055
+		},
+		"error5_count_24h" : 
+		{
+			"max" : 2,
+			"mean" : 0.009895713958285682,
+			"min" : 0,
+			"stddev" : 0.09961880203037982
+		},
+		"hours_since_comp1" : 
+		{
+			"max" : 10239,
+			"mean" : 1394.861379784577,
+			"min" : 0,
+			"stddev" : 1639.506637091597
+		},
+		"hours_since_comp2" : 
+		{
+			"max" : 8373,
+			"mean" : 1357.259958743982,
+			"min" : 0,
+			"stddev" : 1602.530528611273
+		},
+		"hours_since_comp3" : 
+		{
+			"max" : 8901,
+			"mean" : 1404.488883795593,
+			"min" : 0,
+			"stddev" : 1586.624748771282
+		},
+		"hours_since_comp4" : 
+		{
+			"max" : 8079,
+			"mean" : 1403.951455420565,
+			"min" : 0,
+			"stddev" : 1540.890006651614
+		},
+		"is_model1" : 
+		{
+			"max" : 1,
+			"mean" : 0.1600160440064151,
+			"min" : 0,
+			"stddev" : 0.3666219849466047
+		},
+		"is_model2" : 
+		{
+			"max" : 1,
+			"mean" : 0.1700951180380491,
+			"min" : 0,
+			"stddev" : 0.3757174173834544
+		},
+		"is_model3" : 
+		{
+			"max" : 1,
+			"mean" : 0.3501260600504204,
+			"min" : 0,
+			"stddev" : 0.4770105930936856
+		},
+		"is_model4" : 
+		{
+			"max" : 1,
+			"mean" : 0.3197627779051081,
+			"min" : 0,
+			"stddev" : 0.466385881151536
+		},
+		"pressure_mean_24h" : 
+		{
+			"max" : 153.42215706937,
+			"mean" : 100.8150501777946,
+			"min" : 76.00533246775321,
+			"stddev" : 4.711501109094544
+		},
+		"pressure_mean_3h" : 
+		{
+			"max" : 166.1900473363883,
+			"mean" : 100.8108300487006,
+			"min" : 75.42491701731294,
+			"stddev" : 7.3819698696434
+		},
+		"pressure_std_24h" : 
+		{
+			"max" : 28.65410277365159,
+			"mean" : 10.03082233913964,
+			"min" : 0,
+			"stddev" : 1.728144655503605
+		},
+		"pressure_std_3h" : 
+		{
+			"max" : 36.1741369014258,
+			"mean" : 8.874942553875432,
+			"min" : 0,
+			"stddev" : 4.655575606450277
+		},
+		"rotate_mean_24h" : 
+		{
+			"max" : 576.9235630248151,
+			"mean" : 446.5815258940038,
+			"min" : 268.6201370780855,
+			"stddev" : 18.08847870731048
+		},
+		"rotate_mean_3h" : 
+		{
+			"max" : 588.5983965182563,
+			"mean" : 446.5616017487489,
+			"min" : 220.2631885973069,
+			"stddev" : 33.11942193738289
+		},
+		"rotate_std_24h" : 
+		{
+			"max" : 121.544102462315,
+			"mean" : 49.89878376548232,
+			"min" : 0,
+			"stddev" : 7.772490661051006
+		},
+		"rotate_std_3h" : 
+		{
+			"max" : 178.6836646178168,
+			"mean" : 44.42619294675368,
+			"min" : 0,
+			"stddev" : 23.26031683332051
+		},
+		"vibration_mean_24h" : 
+		{
+			"max" : 61.3142375412481,
+			"mean" : 40.39405891234649,
+			"min" : 22.9732894818614,
+			"stddev" : 2.069618928026358
+		},
+		"vibration_mean_3h" : 
+		{
+			"max" : 66.25557379122141,
+			"mean" : 40.39336531933259,
+			"min" : 22.9732894818614,
+			"stddev" : 3.473855567820371
+		},
+		"vibration_std_24h" : 
+		{
+			"max" : 13.20353420387113,
+			"mean" : 4.995550396741655,
+			"min" : 0,
+			"stddev" : 0.8119022874120361
+		},
+		"vibration_std_3h" : 
+		{
+			"max" : 16.53737889283031,
+			"mean" : 4.442559510486471,
+			"min" : 0,
+			"stddev" : 2.320846567749153
+		},
+		"volt_mean_24h" : 
+		{
+			"max" : 223.853296420621,
+			"mean" : 170.8082912508632,
+			"min" : 136.878588459334,
+			"stddev" : 4.76580109579518
+		},
+		"volt_mean_3h" : 
+		{
+			"max" : 231.4462765600564,
+			"mean" : 170.7992914413967,
+			"min" : 132.3375263888236,
+			"stddev" : 9.509424502240217
+		},
+		"volt_std_24h" : 
+		{
+			"max" : 32.69641308313248,
+			"mean" : 14.90082810401052,
+			"min" : 0,
+			"stddev" : 2.297178044672588
+		},
+		"volt_std_3h" : 
+		{
+			"max" : 53.87564297266049,
+			"mean" : 13.28756646269536,
+			"min" : 0,
+			"stddev" : 6.965804915797502
+		}
+	},
+	"label_col" : "label",
+	"model_type" : "boosted_tree_classifier"
+}

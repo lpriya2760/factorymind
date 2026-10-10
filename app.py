@@ -1,5 +1,6 @@
 """FactoryMind Streamlit UI. All analysis goes through factorymind.engine.analyze()."""
 
+import json
 from dataclasses import asdict
 
 import pandas as pd
@@ -7,6 +8,7 @@ import streamlit as st
 
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind.engine import analyze
+from factorymind.predict import MODEL_DIR
 
 st.set_page_config(page_title="FactoryMind", page_icon="🏭", layout="wide")
 st.title("FactoryMind")
@@ -52,11 +54,55 @@ synthetic = [name for name, p in report.data_provenance.items() if p == "synthet
 if synthetic:
     st.warning("Synthetic inputs: " + ", ".join(f"`{name}`" for name in synthetic))
 
-st.subheader(f"Machines ({len(report.machines)})")
+LEVEL_BADGES = {"high": "🔴 High", "medium": "🟠 Medium", "low": "🟢 Low"}
+COMPONENTS = ["comp1", "comp2", "comp3", "comp4"]
+
+st.subheader(f"Failure risk in the next 24h ({len(report.machines)} machines)")
+high = [m for m in report.machines if m.risk_level == "high"]
+if high:
+    st.error("  \n".join(
+        f"**Machine {m.machine_id}**: {m.top_component} is "
+        f"{'>99%' if m.max_risk > 0.99 else f'{m.max_risk:.0%}'} likely to fail in the next 24h"
+        for m in high
+    ))
+
 st.dataframe(
-    pd.DataFrame([asdict(m) for m in report.machines]).rename(
-        columns={"machine_id": "Machine", "model": "Model", "age": "Age (years)"}
-    ),
+    pd.DataFrame([
+        {
+            "Risk": LEVEL_BADGES[m.risk_level],
+            "Machine": m.machine_id,
+            "Model": m.model,
+            "Age": m.age,
+            # For low-risk machines the "riskiest" part and its reasons are noise.
+            "Riskiest part": m.top_component if m.risk_level != "low" else "—",
+            **{c: m.component_risk[c] * 100 for c in COMPONENTS},
+            "Why": (" · ".join(d.description for d in m.top_drivers)
+                    if m.risk_level != "low" else ""),
+        }
+        for m in report.machines
+    ]),
     hide_index=True,
     width="stretch",
+    column_config={
+        c: st.column_config.ProgressColumn(c, min_value=0, max_value=100, format="%.1f%%")
+        for c in COMPONENTS
+    } | {"Why": st.column_config.TextColumn("Why", width="large")},
 )
+
+with st.expander("About the failure model"):
+    metrics = json.loads((MODEL_DIR / "metrics.json").read_text())
+    st.markdown(
+        "A BigQuery ML boosted-tree classifier, trained on "
+        f"{metrics['train_period']} of the Azure Predictive Maintenance data and tested on "
+        f"{metrics['test_period']}, which it never saw. Its features are rolling 3h and 24h "
+        "sensor averages and variability, error counts, time since each part was replaced, and "
+        "machine model and age. It runs inside this app, with no external calls."
+    )
+    st.dataframe(
+        pd.DataFrame(metrics["components"]).T.rename_axis("component").reset_index(),
+        hide_index=True,
+    )
+    st.caption(
+        "The public dataset is simulated, and every failure is preceded by a clear sensor "
+        "anomaly, so these held-out scores are higher than you'd expect in a real plant."
+    )
