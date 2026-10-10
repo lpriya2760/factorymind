@@ -146,6 +146,8 @@ Quality can also degrade *without* an imminent failure. Machine 72 in the same b
 
 All four sensors count toward drift. The spec mentioned only vibration and pressure, but comp2 problems show up in rotation.
 
+**Why this formula, and how the parameters were chosen:** see [ADR 0001](docs/adr/0001-quality-projection-formula.md). It covers the options considered, the rationale for each term, which parameters were tuned against the data and which are judgment calls, the limitations, and how to replace the formula with a model fitted to real defect data.
+
 ## Deploy to Cloud Run
 
 Requirements:
