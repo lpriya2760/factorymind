@@ -177,6 +177,24 @@ If it keeps running, its degrading quality costs $10,890 of excess scrap. Expect
 
 **Why it's built this way:** see [ADR 0002](docs/adr/0002-cascade-simulation.md). It covers each modelling choice and the two demo-data fixes the cascade needed.
 
+## What to do: the intervention simulator
+
+For each machine, FactoryMind evaluates five options. Each one **re-runs the cascade with changed inputs** (`factorymind/interventions.py`):
+
+| Action | Failure chance after | Cost of the action |
+|---|---|---|
+| Do nothing | the model's prediction | $0 |
+| Replace the at-risk part (3h planned stop) | re-predicted by the model, with the part new and its sensor back to normal | part + labour + lost output |
+| Reroute while replacing: a same-model machine covers up to 50% of its rate | re-predicted by the model | part + labour + setup + uncovered output |
+| Full service (6h, all four parts) | re-predicted by the model | 4 parts + labour + lost output |
+| Slow down 25% for 24h | **assumed** stress effect, labelled in the app | lost output |
+
+**Ranking:** net benefit = loss avoided − the action's cost. Ties go to the less disruptive action. Every hour of output not made anywhere costs the downtime cost per hour.
+
+**Example, machine 90:** the best action is **replace comp2 while machine 47 covers**. It costs $6,074 and avoids $24,249 of expected loss, a net benefit of **$18,176**. Healthy machines get "do nothing".
+
+**Why it's built this way:** see [ADR 0003](docs/adr/0003-intervention-simulator.md). It covers why a replacement also resets the sensor features, and why slowing down can't use the model, because low rotation is a symptom of failure.
+
 ## Deploy to Cloud Run
 
 Requirements:

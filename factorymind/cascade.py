@@ -26,6 +26,7 @@ machine's scrap above the normal BASE_RATE (normal scrap isn't a loss caused by 
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -77,70 +78,110 @@ def _late(order, shipped_at: float, shipped: bool, penalty_multiplier: float) ->
     )
 
 
-def build_cascades(tables: dict[str, pd.DataFrame], as_of: pd.Timestamp,
-                   failure_probability: dict[int, float],
-                   quality: dict[int, QualityProjection],
-                   assumptions: dict[str, float]) -> dict[int, Cascade]:
-    """A cascade for every machine. `quality` must cover at least CASCADE_HORIZON_H hours."""
+@dataclass
+class Plant:
+    """Everything the cascade needs about the plant, prepared once per analysis."""
+    orders: pd.DataFrame  # with due_hours from the end of the data
+    inventory: pd.DataFrame  # on_hand, safety_stock by product
+    product: dict[int, str | None]  # each machine's (main) product
+    units: dict[int, float]  # each machine's scheduled units per hour
+    makers: dict[str, list[int]]  # machines making each product
+    defect: dict[int, np.ndarray]  # each machine's projected defect rate, hour by hour
+    assumptions: dict[str, float]
+
+    def good_output(self, machine_id: int) -> np.ndarray:
+        """Good units per hour if the machine keeps running as it is."""
+        return self.units[machine_id] * (1 - self.defect[machine_id])
+
+    def excess_scrap(self, machine_id: int) -> np.ndarray:
+        """USD per hour of this machine's scrap above the normal defect rate."""
+        return ((self.defect[machine_id] - BASE_RATE).clip(min=0) * self.units[machine_id]
+                * self.assumptions["scrap_cost_per_unit"])
+
+
+def prepare_plant(tables: dict[str, pd.DataFrame], as_of: pd.Timestamp,
+                  quality: dict[int, QualityProjection], assumptions: dict[str, float]) -> Plant:
+    """`quality` must cover at least CASCADE_HORIZON_H hours."""
     schedule = tables["production_schedule"]
-    inventory = tables["inventory"].groupby("product")[["on_hand", "safety_stock"]].sum()
-    orders = tables["orders"].assign(
-        due_hours=(tables["orders"]["due_date"] - as_of) / pd.Timedelta(hours=1))
-
     h = CASCADE_HORIZON_H
-    good_output = {}  # machine -> good units per hour, if it keeps running
-    for row in schedule.itertuples():
-        defect = np.asarray(quality[row.machine_id].defect_rate[:h]) if row.machine_id in quality \
-            else np.full(h, BASE_RATE)
-        good_output.setdefault(row.product, {})[row.machine_id] = row.units_per_hour * (1 - defect)
+    product, units, makers, defect = {}, {}, {}, {}
+    for machine_id in quality:
+        rows = schedule[schedule["machine_id"] == machine_id]
+        product[machine_id] = (str(rows.sort_values("units_per_hour").iloc[-1]["product"])
+                               if len(rows) else None)
+        units[machine_id] = float(rows["units_per_hour"].sum())
+        defect[machine_id] = np.asarray(quality[machine_id].defect_rate[:h])
+        if product[machine_id] is not None:
+            makers.setdefault(product[machine_id], []).append(machine_id)
+    return Plant(
+        orders=tables["orders"].assign(
+            due_hours=(tables["orders"]["due_date"] - as_of) / pd.Timedelta(hours=1)),
+        inventory=tables["inventory"].groupby("product")[["on_hand", "safety_stock"]].sum(),
+        product=product, units=units, makers=makers, defect=defect, assumptions=assumptions,
+    )
 
-    repair_h = assumptions["repair_hours"]
-    down = slice(FAILURE_AT_H, min(h, FAILURE_AT_H + math.ceil(repair_h)))
-    scrap_cost = assumptions["scrap_cost_per_unit"]
-    penalty_multiplier = assumptions["penalty_multiplier"]
 
+def run_scenarios(plant: Plant, machine_id: int, p: float,
+                  production: dict[int, np.ndarray] | None = None,
+                  excess_scrap: np.ndarray | None = None,
+                  ) -> tuple[ScenarioOutcome, ScenarioOutcome, float]:
+    """Simulate `machine_id` failing at FAILURE_AT_H (probability p) or not.
+
+    `production` (good units per hour of each machine making the product) and `excess_scrap`
+    (USD per hour attributed to this machine) default to everyone running as they are; the
+    intervention simulator passes changed ones. Returns (if it fails, if not, expected loss).
+    """
+    a = plant.assumptions
+    product = plant.product[machine_id]
+    if production is None:
+        production = {m: plant.good_output(m) for m in plant.makers.get(product, [])}
+    if excess_scrap is None:
+        excess_scrap = plant.excess_scrap(machine_id)
+    repair_h = a["repair_hours"]
+    down = slice(FAILURE_AT_H, min(CASCADE_HORIZON_H, FAILURE_AT_H + math.ceil(repair_h)))
+
+    def outcome(fails: bool) -> ScenarioOutcome:
+        late, breach = [], None
+        if product is not None:
+            total = sum(production.values())
+            if fails:
+                mine = production[machine_id].copy()
+                mine[down] = 0
+                mine[down.stop:] = plant.units[machine_id] * (1 - BASE_RATE)  # repaired
+                total = total - production[machine_id] + mine
+            stock = plant.inventory.loc[product] if product in plant.inventory.index else None
+            late, breach = simulate_orders(
+                plant.orders[plant.orders["product"] == product],
+                stock["on_hand"] if stock is not None else 0.0,
+                stock["safety_stock"] if stock is not None else 0.0,
+                total, a["penalty_multiplier"])
+        penalties = round(sum(o.penalty for o in late), 2)
+        scrap = float(excess_scrap[:down.start].sum() if fails else excess_scrap.sum())
+        downtime_cost = a["downtime_cost_per_hour"] * repair_h if fails else 0.0
+        repair_cost = (a["component_replacement_cost"]
+                       + a["maintenance_labour_cost_per_hour"] * repair_h if fails else 0.0)
+        return ScenarioOutcome(
+            late_orders=late, penalties=penalties, excess_scrap_cost=round(scrap, 2),
+            downtime_cost=round(downtime_cost, 2), repair_cost=round(repair_cost, 2),
+            inventory_breach_hours=breach,
+            total_loss=round(penalties + scrap + downtime_cost + repair_cost, 2),
+        )
+
+    if_failure, if_no_failure = outcome(True), outcome(False)
+    expected = round(p * if_failure.total_loss + (1 - p) * if_no_failure.total_loss, 2)
+    return if_failure, if_no_failure, expected
+
+
+def build_cascades(plant: Plant, failure_probability: dict[int, float]) -> dict[int, Cascade]:
+    """The do-nothing cascade for every machine."""
     out = {}
     for machine_id, p in failure_probability.items():
-        rows = schedule[schedule["machine_id"] == machine_id]
-        product = (str(rows.sort_values("units_per_hour").iloc[-1]["product"])
-                   if len(rows) else None)
-        units = float(rows["units_per_hour"].sum())
-        excess = (np.asarray(quality[machine_id].defect_rate[:h]) - BASE_RATE).clip(min=0) \
-            * units * scrap_cost
-
-        def outcome(fails: bool) -> ScenarioOutcome:
-            late, breach = [], None
-            if product is not None:
-                production = sum(good_output[product].values())
-                if fails:
-                    mine = good_output[product][machine_id].copy()
-                    mine[down] = 0
-                    mine[down.stop:] = units * (1 - BASE_RATE)
-                    production = production - good_output[product][machine_id] + mine
-                stock = inventory.loc[product] if product in inventory.index else None
-                late, breach = simulate_orders(
-                    orders[orders["product"] == product],
-                    stock["on_hand"] if stock is not None else 0.0,
-                    stock["safety_stock"] if stock is not None else 0.0,
-                    production, penalty_multiplier)
-            penalties = round(sum(o.penalty for o in late), 2)
-            scrap = float(excess[:down.start].sum() if fails else excess.sum())
-            downtime_cost = assumptions["downtime_cost_per_hour"] * repair_h if fails else 0.0
-            repair_cost = (assumptions["component_replacement_cost"]
-                           + assumptions["maintenance_labour_cost_per_hour"] * repair_h
-                           if fails else 0.0)
-            return ScenarioOutcome(
-                late_orders=late, penalties=penalties, excess_scrap_cost=round(scrap, 2),
-                downtime_cost=round(downtime_cost, 2), repair_cost=round(repair_cost, 2),
-                inventory_breach_hours=breach,
-                total_loss=round(penalties + scrap + downtime_cost + repair_cost, 2),
-            )
-
-        if_failure, if_no_failure = outcome(True), outcome(False)
+        if_failure, if_no_failure, expected = run_scenarios(plant, machine_id, p)
+        repair_h = plant.assumptions["repair_hours"]
         out[machine_id] = Cascade(
-            product=product, failure_probability=round(p, 4), failure_at_hours=FAILURE_AT_H,
-            downtime_hours=repair_h, lost_units=round(units * repair_h, 1),
-            if_failure=if_failure, if_no_failure=if_no_failure,
-            expected_loss=round(p * if_failure.total_loss + (1 - p) * if_no_failure.total_loss, 2),
+            product=plant.product[machine_id], failure_probability=round(p, 4),
+            failure_at_hours=FAILURE_AT_H, downtime_hours=repair_h,
+            lost_units=round(plant.units[machine_id] * repair_h, 1),
+            if_failure=if_failure, if_no_failure=if_no_failure, expected_loss=expected,
         )
     return out

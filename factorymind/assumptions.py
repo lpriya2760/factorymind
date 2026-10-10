@@ -11,6 +11,10 @@ DEFAULT_ASSUMPTIONS: dict[str, float] = {
     "maintenance_labour_cost_per_hour": 90.0,  # USD
     "scrap_cost_per_unit": 15.0,  # USD per defective unit
     "penalty_multiplier": 1.0,  # scales every order's penalty_per_day
+    "planned_replacement_hours": 3.0,  # planned part swap: parts staged, no secondary damage
+    "full_service_hours": 6.0,  # replace all four components and recalibrate
+    "reroute_setup_cost": 500.0,  # USD to move a job to another machine
+    "spare_capacity_share": 0.5,  # how far above its scheduled rate another machine can run
 }
 
 

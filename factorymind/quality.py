@@ -64,7 +64,6 @@ def project_quality(features: pd.DataFrame, schedule: pd.DataFrame, scrap_cost_p
         now = rows.iloc[-1]
 
         component_age = max(now[f"hours_since_{c}"] for c in COMPONENTS)
-        wear = (component_age + hours) / TYPICAL_LIFE_H
 
         normal = {s: rows[f"{s}_mean_24h"].median() for s in SENSORS}
         gaps_now = {s: _gap(now[f"{s}_mean_24h"], normal[s]) for s in SENSORS}
@@ -73,16 +72,9 @@ def project_quality(features: pd.DataFrame, schedule: pd.DataFrame, scrap_cost_p
         elapsed = (now["datetime"] - before["datetime"]) / pd.Timedelta(hours=1)
         growth = (max(0.0, (gaps_now[sensor] - _gap(before[f"{sensor}_mean_24h"], normal[sensor]))
                       / elapsed) if elapsed > 0 else 0.0)
-        drift = gaps_now[sensor] + growth * np.minimum(hours, TREND_HORIZON_H)
 
         errors = int(sum(now[c] for c in features.columns if c.endswith("_count_24h")))
-        defect = np.minimum(
-            MAX_RATE,
-            BASE_RATE
-            + WEAR_WEIGHT * np.minimum(wear, WEAR_CAP) ** 2
-            + DRIFT_WEIGHT * np.minimum(np.maximum(drift - DRIFT_DEADBAND, 0), DRIFT_CAP)
-            + ERROR_WEIGHT * errors,
-        )
+        defect = defect_curve(component_age, gaps_now[sensor], growth, errors, horizon_hours)
         units = float(units_per_hour.get(machine_id, 0.0))
         out[int(machine_id)] = QualityProjection(
             horizon_hours=hours.tolist(),
@@ -96,6 +88,21 @@ def project_quality(features: pd.DataFrame, schedule: pd.DataFrame, scrap_cost_p
             errors_24h=errors,
         )
     return out
+
+
+def defect_curve(component_age_hours: float, drift: float, drift_growth_per_hour: float,
+                 errors_24h: int, horizon_hours: int) -> np.ndarray:
+    """The formula above, for hours 0..horizon_hours."""
+    hours = np.arange(horizon_hours + 1)
+    wear = (component_age_hours + hours) / TYPICAL_LIFE_H
+    drift_h = drift + drift_growth_per_hour * np.minimum(hours, TREND_HORIZON_H)
+    return np.minimum(
+        MAX_RATE,
+        BASE_RATE
+        + WEAR_WEIGHT * np.minimum(wear, WEAR_CAP) ** 2
+        + DRIFT_WEIGHT * np.minimum(np.maximum(drift_h - DRIFT_DEADBAND, 0), DRIFT_CAP)
+        + ERROR_WEIGHT * errors_24h,
+    )
 
 
 def _gap(value: float, normal: float) -> float:

@@ -87,10 +87,30 @@ class Cascade:
 
 
 @dataclass(frozen=True)
+class Intervention:
+    """One action for a machine, simulated by re-running the cascade (see
+    factorymind.interventions)."""
+    lever: str  # do_nothing | reduce_speed | replace_component | maintain_now | reroute
+    label: str
+    params: dict[str, object]
+    cost: float  # USD, the action itself
+    failure_probability_after: float  # any component, next 24h
+    component_risk_after: dict[str, float]
+    effect_basis: str  # "model" (re-predicted) or "assumption"
+    expected_loss_after: float
+    loss_avoided: float  # versus doing nothing
+    net_benefit: float  # loss avoided − cost
+    disruption: int  # 0 (none) to 4 (most disruptive); breaks ties in the ranking
+    rank: int  # 1 = best
+    note: str
+
+
+@dataclass(frozen=True)
 class AnalysisReport:
     machines: list[MachineSummary]  # riskiest first
     quality: dict[int, QualityProjection]  # by machine_id
     cascade: dict[int, Cascade]  # by machine_id
+    interventions: dict[int, list[Intervention]]  # by machine_id, best first
     assumptions_used: dict[str, float]
     seed: int
     data_provenance: dict[str, str]  # table name -> "real" | "synthetic"
