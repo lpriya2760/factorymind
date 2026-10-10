@@ -263,9 +263,11 @@ st.markdown("#### What to do about it")
 options = report.interventions[machine_id]
 best = options[0]
 if best.lever == "do_nothing":
+    alt = options[1]
+    effect = (f"to avoid \\${alt.loss_avoided:,.0f} of expected loss" if alt.loss_avoided > 0
+              else "and wouldn't reduce the expected loss")
     st.success(f"**Best: do nothing.** No action pays for itself: the best alternative, "
-               f"*{options[1].label.lower()}*, would cost \\${options[1].cost:,.0f} to avoid "
-               f"\\${options[1].loss_avoided:,.0f} of expected loss.")
+               f"*{alt.label.lower()}*, would cost \\${alt.cost:,.0f} {effect}.")
 else:
     st.success(f"**Best: {best.label}.** Costs \\${best.cost:,.0f} and avoids "
                f"\\${best.loss_avoided:,.0f} of expected loss: a net benefit of "
