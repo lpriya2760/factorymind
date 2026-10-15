@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY .streamlit ./.streamlit
 COPY factorymind ./factorymind
 COPY app.py .
+COPY demo_bundles/*.zip ./demo_bundles/
 
 # Cloud Run sets PORT.
 CMD streamlit run app.py --server.port=${PORT:-8080} --server.address=0.0.0.0

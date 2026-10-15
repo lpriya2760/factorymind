@@ -7,4 +7,5 @@ data/
 docs/
 tests/
 scripts/
-demo_bundles/
+# The demo zips ship with the app; the unzipped folders don't need to.
+demo_bundles/*/

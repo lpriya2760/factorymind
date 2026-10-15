@@ -12,7 +12,7 @@ Requires [uv](https://docs.astral.sh/uv/) (`brew install uv`). uv installs Pytho
 uv run streamlit run app.py
 ```
 
-Upload a bundle: try the tiny one in `tests/fixtures/tiny_bundle/`.
+Click one of the **demo bundles** next to the uploader, or upload your own files. Each demo can also be downloaded as a zip to see the format.
 
 ## Test
 
