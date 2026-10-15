@@ -1,0 +1,3655 @@
+{
+ "prompt_version": "49e426fa15cd",
+ "generated": "2026-10-15T15:47:57+00:00",
+ "entries": {
+  "4a8ee1b074f9081031c42a283dc050bb71b6ffe6cd436dd3c89615e17ba31599": {
+   "text": "The recommended action is to **Do nothing** [simulate_interventions] and keep machine 4 running as it is right now. \n\nDoing nothing delivers a net benefit of $0 [simulate_interventions] with an intervention cost of $0 [simulate_interventions] and loss avoided of $0 [simulate_interventions]. It beats all proactive alternatives because any maintenance would result in significant net losses: replacing comp3 with machine 86 covering yields a net benefit of -$5,574 [simulate_interventions], replacing comp3 now yields -$8,968 [simulate_interventions], slowing down 25% for 24h yields -$14,982 [simulate_interventions], and a full service now yields -$20,207 [simulate_interventions]. \n\nThe remaining risk is minimal: machine 4 has an overall low risk level [get_machine_risk] with an expected loss after of $170 [simulate_interventions] and a failure chance after of 0.1% [simulate_interventions]. Component failure chances for comp1, comp2, comp3, and comp4 are all 0% [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 4
+     },
+     "result": {
+      "machine_id": 4,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 170,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp3, machine 86 covers",
+        "cost_usd": 5574,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 171,
+        "loss_avoided_usd": -1,
+        "net_benefit_usd": -5574,
+        "note": "As replacing comp3, but machine 86 (same model, lowest risk) makes 21 of this machine's 41 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp3 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 168,
+        "loss_avoided_usd": 2,
+        "net_benefit_usd": -8968,
+        "note": "Planned 3h swap of comp3 now: its age resets and pressure returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 152,
+        "loss_avoided_usd": 18,
+        "net_benefit_usd": -14982,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 133,
+        "net_benefit_usd": -20207,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 4
+     },
+     "result": {
+      "machine_id": 4,
+      "model": "model3",
+      "age_years": 7,
+      "risk_level": "low",
+      "riskiest_component": "comp3",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "1bbea4809e94f40abdae09c11c6a5e252521ad3d012d4907d13d9dd88e826787": {
+   "text": "The recommended action right now is to **Do nothing** and keep running machine 19 as it is [simulate_interventions]. The timing is right now [simulate_interventions]. \n\nThis option yields a cost of $0 [simulate_interventions], loss avoided of $0 [simulate_interventions], and a net benefit of $0 [simulate_interventions]. It beats all proactive alternatives because every maintenance intervention carries negative net benefit due to intervention costs exceeding expected losses:\n- \"Replace comp2, machine 4 covers\" has a net benefit of -$523 [simulate_interventions].\n- \"Replace comp2 now\" has a net benefit of -$3,581 [simulate_interventions].\n- \"Full service now\" has a net benefit of -$14,898 [simulate_interventions].\n- \"Slow down 25% for 24h\" has a net benefit of -$14,911 [simulate_interventions].\n\nThe risk level is low [get_machine_risk]. The remaining risk if you do nothing is an expected loss of $5,479 [simulate_interventions] and a failure chance of 0.2% [simulate_interventions]. Across individual parts, comp1, comp2, comp3, and comp4 each show a failure chance of 0% [get_machine_risk], with comp2 identified as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 19
+     },
+     "result": {
+      "machine_id": 19,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 5479,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 4 covers",
+        "cost_usd": 5911,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 91,
+        "loss_avoided_usd": 5388,
+        "net_benefit_usd": -523,
+        "note": "As replacing comp2, but machine 4 (same model, lowest risk) makes 20 of this machine's 43 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 90,
+        "loss_avoided_usd": 5389,
+        "net_benefit_usd": -3581,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 5442,
+        "net_benefit_usd": -14898,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 5390,
+        "loss_avoided_usd": 89,
+        "net_benefit_usd": -14911,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 19
+     },
+     "result": {
+      "machine_id": 19,
+      "model": "model3",
+      "age_years": 17,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "915710f9a3292371b7ed4f1c9133c98ef05d0a10cf7aa10e2e24c6c7e01c3bdd": {
+   "text": "The recommended action for machine 26 is to **Do nothing** right now [simulate_interventions]. Keep the machine running as it is [simulate_interventions].\n\nTaking no action has a cost of $0 [simulate_interventions] and delivers a net benefit of $0 [simulate_interventions]. It beats all alternative interventions because every proactive repair option produces a substantial net loss. For instance, replacing comp2 with machine 4 covering yields a net benefit of -$5,826 [simulate_interventions], replacing comp2 immediately results in -$8,968 [simulate_interventions], slowing down 25% results in -$14,980 [simulate_interventions], and a full service now results in -$20,214 [simulate_interventions]. Machine 26 is currently classified at low risk [get_machine_risk].\n\nThe remaining risk is minimal: the failure chance over the next 24 hours is 0.2% [simulate_interventions], leading to an expected loss of $162 [simulate_interventions]. The riskiest component is comp2 [get_machine_risk], though comp1, comp2, comp3, and comp4 each individually show a failure chance of 0% [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 26
+     },
+     "result": {
+      "machine_id": 26,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 162,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 4 covers",
+        "cost_usd": 5827,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 162,
+        "loss_avoided_usd": 1,
+        "net_benefit_usd": -5826,
+        "note": "As replacing comp2, but machine 4 (same model, lowest risk) makes 20 of this machine's 42 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 160,
+        "loss_avoided_usd": 2,
+        "net_benefit_usd": -8968,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 142,
+        "loss_avoided_usd": 20,
+        "net_benefit_usd": -14980,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 126,
+        "net_benefit_usd": -20214,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 26
+     },
+     "result": {
+      "machine_id": 26,
+      "model": "model3",
+      "age_years": 3,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    },
+    {
+     "name": "get_risk_overview",
+     "args": {},
+     "result": {
+      "machines": [
+       {
+        "machine_id": 90,
+        "model": "model2",
+        "risk_level": "high",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 99.9,
+        "expected_loss_usd": 24412,
+        "best_action": "Replace comp2, machine 47 covers"
+       },
+       {
+        "machine_id": 44,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 1.0,
+        "expected_loss_usd": 1405,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 72,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp3",
+        "failure_chance_pct": 0.3,
+        "expected_loss_usd": 11875,
+        "best_action": "Replace comp3, machine 100 covers"
+       },
+       {
+        "machine_id": 19,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 5479,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 26,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 162,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 65,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 2435,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 47,
+        "model": "model2",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 1609,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 86,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 398,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 4,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp3",
+        "failure_chance_pct": 0.1,
+        "expected_loss_usd": 170,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 100,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.1,
+        "expected_loss_usd": 2376,
+        "best_action": "Do nothing"
+       }
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "45f075ec990eb09de16caae0a7c761a80ab72bc7dcd6f01bf3b440bcec2327ec": {
+   "text": "The recommended action for machine 44 right now is to **Do nothing** and keep running as it is [simulate_interventions]. \n\nThis option yields a cost of $0 [simulate_interventions], avoided loss of $0 [simulate_interventions], and a net benefit of $0 [simulate_interventions]. It beats all alternative interventions because every proactive maintenance option costs far more than the damage it prevents. For instance, replacing comp2 with machine 100 covering results in a net benefit of -$5,368 [simulate_interventions], replacing comp2 now yields -$8,804 [simulate_interventions], slowing down yields -$14,901 [simulate_interventions], and a full service yields -$18,972 [simulate_interventions].\n\nThe risk that remains by continuing normal operation is an expected loss of $1,405 [simulate_interventions] and an overall failure chance of 1% [simulate_interventions]. Across individual parts, comp1, comp2, comp3, and comp4 each carry an identical 0.2% failure chance [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 44
+     },
+     "result": {
+      "machine_id": 44,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 1.0,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1405,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 100 covers",
+        "cost_usd": 5526,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1247,
+        "loss_avoided_usd": 158,
+        "net_benefit_usd": -5368,
+        "note": "As replacing comp2, but machine 100 (same model, lowest risk) makes 22 of this machine's 42 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1238,
+        "loss_avoided_usd": 166,
+        "net_benefit_usd": -8804,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.5,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 1306,
+        "loss_avoided_usd": 99,
+        "net_benefit_usd": -14901,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 1368,
+        "net_benefit_usd": -18972,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 44
+     },
+     "result": {
+      "machine_id": 44,
+      "model": "model4",
+      "age_years": 7,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.2,
+       "comp2": 0.2,
+       "comp3": 0.2,
+       "comp4": 0.2
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "8ab53261e817360b49b4afb9be08bdcbdd609e11fe8607881a851756d69d1a8f": {
+   "text": "The recommended action right now is to **Do nothing** and keep running as it is [simulate_interventions]. \n\n**Timing:** Right now [simulate_interventions].\n\n**Financial impact:** The cost of this action is $0 [simulate_interventions], with a net benefit of $0 [simulate_interventions] and an expected loss after of $1,609 [simulate_interventions]. \n\n**Why it beats alternatives:** Machine 47 is already at low risk [get_machine_risk]. Every intervention produces a negative net benefit: replacing comp2 with machine 90 covering yields -$5,363 [simulate_interventions], replacing comp2 now yields -$8,944 [simulate_interventions], slowing down 25% yields -$18,224 [simulate_interventions], and a full service yields -$18,776 [simulate_interventions]. Intervening costs substantially more than the potential losses avoided.\n\n**Remaining risk:** The failure chance after doing nothing is 0.1% [simulate_interventions]. Looking across individual components, the failure chances for comp1, comp2, comp3, and comp4 are all 0% [get_machine_risk], with comp2 noted as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 47
+     },
+     "result": {
+      "machine_id": 47,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1609,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 90 covers",
+        "cost_usd": 5329,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1643,
+        "loss_avoided_usd": -34,
+        "net_benefit_usd": -5363,
+        "note": "As replacing comp2, but machine 90 (same model, lowest risk) makes 19 of this machine's 34 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1584,
+        "loss_avoided_usd": 26,
+        "net_benefit_usd": -8944,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 4834,
+        "loss_avoided_usd": -3224,
+        "net_benefit_usd": -18224,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 45,
+        "loss_avoided_usd": 1564,
+        "net_benefit_usd": -18776,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 47
+     },
+     "result": {
+      "machine_id": 47,
+      "model": "model2",
+      "age_years": 6,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "4105cd5a3f33553656bb13c3c9070630831b60f595e9ed304caca296b6d48e4c": {
+   "text": "The recommended action for machine 65 right now is \"Do nothing\" [simulate_interventions], meaning keep running as it is immediately. \n\nThis option delivers a net benefit of $0 [simulate_interventions] with an intervention cost of $0 [simulate_interventions] and loss avoided of $0 [simulate_interventions]. It beats all alternative interventions because every proactive repair results in a net financial loss due to high intervention costs. For example, replacing comp2 while machine 4 covers yields a net benefit of -$5,322 [simulate_interventions], replacing comp2 now yields a net benefit of -$8,397 [simulate_interventions], slowing down 25% for 24h yields -$14,903 [simulate_interventions], and a full service now yields -$17,942 [simulate_interventions].\n\nThe overall risk level remains \"low\" [get_machine_risk], with the machine carrying a failure chance after of 0.1% [simulate_interventions] and an expected loss of $2,435 [simulate_interventions]. Across all components, comp1, comp2, comp3, and comp4 each show a failure chance of 0% [get_machine_risk], though comp2 is identified as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 65
+     },
+     "result": {
+      "machine_id": 65,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 2435,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 4 covers",
+        "cost_usd": 5894,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1862,
+        "loss_avoided_usd": 572,
+        "net_benefit_usd": -5322,
+        "note": "As replacing comp2, but machine 4 (same model, lowest risk) makes 20 of this machine's 43 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1861,
+        "loss_avoided_usd": 573,
+        "net_benefit_usd": -8397,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 2337,
+        "loss_avoided_usd": 97,
+        "net_benefit_usd": -14903,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 2398,
+        "net_benefit_usd": -17942,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 65
+     },
+     "result": {
+      "machine_id": 65,
+      "model": "model3",
+      "age_years": 15,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "4ab3774657d891e41fe21a5257b0fa0e3d1eb83563940bdeef4fff590ba6d4c7": {
+   "text": "The recommended action is **Replace comp3, machine 100 covers**, to be scheduled **now** during a planned 3-hour stop [simulate_interventions]. \n\nThis action yields an avoided loss of $11,582 [simulate_interventions] and a net benefit of $6,251 [simulate_interventions] against an intervention cost of $5,331 [simulate_interventions]. \n\nIt beats the alternatives because having machine 100 cover production keeps downtime losses lower than a standard component swap without cover, which provides a lower net benefit of $2,621 [simulate_interventions]. Meanwhile, doing nothing carries an expected loss of $11,875 [simulate_interventions], and aggressive options like a full service now or slowing down 25% produce negative net benefits of -$8,502 and -$14,604 [simulate_interventions]. \n\nThe primary driver is elevated pressure, with a 24-hour average of 123.4 versus the fleet median of 101.2 [get_machine_risk]. Following the intervention, the remaining risk is a 0.1% failure chance [simulate_interventions] with an expected loss of $293 [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 72
+     },
+     "result": {
+      "machine_id": 72,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Replace comp3, machine 100 covers",
+        "cost_usd": 5331,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 293,
+        "loss_avoided_usd": 11582,
+        "net_benefit_usd": 6251,
+        "note": "As replacing comp3, but machine 100 (same model, lowest risk) makes 22 of this machine's 40 units/h during the 3h stop."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp3 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 284,
+        "loss_avoided_usd": 11591,
+        "net_benefit_usd": 2621,
+        "note": "Planned 3h swap of comp3 now: its age resets and pressure returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 3,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.3,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 11875,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 4,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 11838,
+        "net_benefit_usd": -8502,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 11479,
+        "loss_avoided_usd": 396,
+        "net_benefit_usd": -14604,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 72
+     },
+     "result": {
+      "machine_id": 72,
+      "model": "model4",
+      "age_years": 2,
+      "risk_level": "low",
+      "riskiest_component": "comp3",
+      "component_failure_chance_pct": {
+       "comp1": 0.1,
+       "comp2": 0.1,
+       "comp3": 0.1,
+       "comp4": 0.1
+      },
+      "drivers": [
+       "pressure 24h average 123.4 (fleet median 101.2)"
+      ]
+     }
+    },
+    {
+     "name": "get_cascade",
+     "args": {
+      "machine_id": 72
+     },
+     "result": {
+      "machine_id": 72,
+      "product": "P-400",
+      "failure_chance_pct": 0.3,
+      "failure_at_hour": 12,
+      "downtime_hours": 8.0,
+      "units_not_made": 324,
+      "if_it_fails": {
+       "late_order_count": 0,
+       "late_orders": [],
+       "safety_stock_breached_at_hour": null,
+       "penalties_usd": 0,
+       "excess_scrap_usd": 749,
+       "downtime_cost_usd": 20000,
+       "repair_cost_usd": 1920,
+       "total_loss_usd": 22669
+      },
+      "if_it_keeps_running": {
+       "late_order_count": 0,
+       "late_orders": [],
+       "safety_stock_breached_at_hour": null,
+       "penalties_usd": 0,
+       "excess_scrap_usd": 11845,
+       "downtime_cost_usd": 0,
+       "repair_cost_usd": 0,
+       "total_loss_usd": 11845
+      },
+      "expected_loss_usd": 11875
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "b329cd1dcf39bd6559814cbac9d1892f9badc0b4638170eb1e1979264563e4d3": {
+   "text": "The recommended action for machine 86 right now is **Do nothing** [simulate_interventions], keeping it running as it is immediately. \n\nThis option saves money by incurring an intervention cost of $0 [simulate_interventions], giving a net benefit of $0 [simulate_interventions] and avoiding unneeded maintenance spend. It beats all alternative actions because every simulated intervention results in a net financial loss due to maintenance costs far exceeding any loss avoided:\n- Replacing comp2 with machine 4 covering yields a net benefit of -$5,683 [simulate_interventions] at a cost of $5,861 [simulate_interventions].\n- Replacing comp2 now yields a net benefit of -$8,791 [simulate_interventions] at a cost of $8,970 [simulate_interventions].\n- Slowing down 25% yields a net benefit of -$14,973 [simulate_interventions].\n- A full service yields a net benefit of -$19,978 [simulate_interventions].\n\nThe remaining risk is low [get_machine_risk], with a failure chance of 0.2% [get_risk_overview] (or 0.1% [simulate_interventions]) and an expected loss of $398 [simulate_interventions]. Its riskiest component is comp2 [get_risk_overview], though the failure chance across comp1, comp2, comp3, and comp4 is currently 0% [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 86
+     },
+     "result": {
+      "machine_id": 86,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 398,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 4 covers",
+        "cost_usd": 5861,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 221,
+        "loss_avoided_usd": 178,
+        "net_benefit_usd": -5683,
+        "note": "As replacing comp2, but machine 4 (same model, lowest risk) makes 20 of this machine's 43 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 220,
+        "loss_avoided_usd": 179,
+        "net_benefit_usd": -8791,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 372,
+        "loss_avoided_usd": 27,
+        "net_benefit_usd": -14973,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 362,
+        "net_benefit_usd": -19978,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 86
+     },
+     "result": {
+      "machine_id": 86,
+      "model": "model3",
+      "age_years": 2,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    },
+    {
+     "name": "get_risk_overview",
+     "args": {},
+     "result": {
+      "machines": [
+       {
+        "machine_id": 90,
+        "model": "model2",
+        "risk_level": "high",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 99.9,
+        "expected_loss_usd": 24412,
+        "best_action": "Replace comp2, machine 47 covers"
+       },
+       {
+        "machine_id": 44,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 1.0,
+        "expected_loss_usd": 1405,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 72,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp3",
+        "failure_chance_pct": 0.3,
+        "expected_loss_usd": 11875,
+        "best_action": "Replace comp3, machine 100 covers"
+       },
+       {
+        "machine_id": 19,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 5479,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 26,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 162,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 65,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 2435,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 47,
+        "model": "model2",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 1609,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 86,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 398,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 4,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp3",
+        "failure_chance_pct": 0.1,
+        "expected_loss_usd": 170,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 100,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.1,
+        "expected_loss_usd": 2376,
+        "best_action": "Do nothing"
+       }
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "67b1e067a787ed05d1723d588ced7989d6db7ff9bc90f03ca8ed1f380d853956": {
+   "text": "The recommended action right now is: **Replace comp2, machine 47 covers** [simulate_interventions]. \n\nExecute this during a 3-hour stop now, where machine 47 makes 17 of this machine's 37 units/h [simulate_interventions]. This action delivers a net benefit of $18,176 [simulate_interventions] by avoiding $24,249 [simulate_interventions] in losses at an intervention cost of $6,074 [simulate_interventions].\n\nThis option beats all alternatives:\n- Doing nothing leaves a failure chance of 99.9% [simulate_interventions] and an expected loss of $24,412 [simulate_interventions].\n- Replacing comp2 without coverage costs more ($8,970 [simulate_interventions]), yielding a lower net benefit of $15,290 [simulate_interventions].\n- A full service costs $20,340 [simulate_interventions] with a net benefit of only $4,029 [simulate_interventions].\n- Slowing down 25% produces a negative net benefit of -$16,951 [simulate_interventions].\n\nTargeting comp2 directly addresses the root problem, as its failure chance is currently 99.8% [get_machine_risk]. After the intervention, the remaining risk is minimal: the failure chance drops to 0.1% [simulate_interventions], leaving an expected loss of $163 [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 90
+     },
+     "result": {
+      "machine_id": 90,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Replace comp2, machine 47 covers",
+        "cost_usd": 6074,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 163,
+        "loss_avoided_usd": 24249,
+        "net_benefit_usd": 18176,
+        "note": "As replacing comp2, but machine 47 (same model, lowest risk) makes 17 of this machine's 37 units/h during the 3h stop."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 153,
+        "loss_avoided_usd": 24260,
+        "net_benefit_usd": 15290,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 3,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 44,
+        "loss_avoided_usd": 24369,
+        "net_benefit_usd": 4029,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 99.9,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 24412,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 98.5,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 26363,
+        "loss_avoided_usd": -1951,
+        "net_benefit_usd": -16951,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 90
+     },
+     "result": {
+      "machine_id": 90,
+      "model": "model2",
+      "age_years": 2,
+      "risk_level": "high",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 99.8,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": [
+       "1\u00d7 error2 in the last 24h",
+       "rotate 24h average 378.5 (fleet median 447.7)",
+       "1\u00d7 error3 in the last 24h"
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "f2885d4edbbad4bdbee9fe49bdaca3b7e3a72293a14eae5d8ca759fd18e6034b": {
+   "text": "The recommended action for machine 100 right now is to **Do nothing** and keep running as it is [simulate_interventions]. \n\nThis option carries a cost of $0 [simulate_interventions], achieves $0 in loss avoided [simulate_interventions], and delivers a net benefit of $0 [simulate_interventions]. It ranks first [simulate_interventions] because every alternative intervention produces a negative net benefit: replacing comp2 with machine 72 covering results in a net benefit of -$5,295 [simulate_interventions], replacing comp2 now yields -$8,100 [simulate_interventions], slowing down 25% for 24h yields -$14,941 [simulate_interventions], and a full service now results in -$18,001 [simulate_interventions]. Intervening actively costs far more than the potential losses avoided.\n\nThe remaining risk under this choice is an expected loss of $2,376 [simulate_interventions] with a failure chance of 0.1% [simulate_interventions]. Machine 100's overall risk level is low [get_machine_risk], with its riskiest component being comp2 [get_machine_risk], while component failure chances across comp1, comp2, comp3, and comp4 are each 0% [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 100
+     },
+     "result": {
+      "machine_id": 100,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 2376,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 72 covers",
+        "cost_usd": 6072,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1598,
+        "loss_avoided_usd": 778,
+        "net_benefit_usd": -5295,
+        "note": "As replacing comp2, but machine 72 (same model, lowest risk) makes 20 of this machine's 45 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1506,
+        "loss_avoided_usd": 870,
+        "net_benefit_usd": -8100,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 2317,
+        "loss_avoided_usd": 59,
+        "net_benefit_usd": -14941,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 2339,
+        "net_benefit_usd": -18001,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 100
+     },
+     "result": {
+      "machine_id": 100,
+      "model": "model4",
+      "age_years": 5,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "8fdb0ba1165ae4b187bc91d26b1d073cf3b9f25987625ad77e346eda71f54cb4": {
+   "text": "Recommend taking action to \"Replace comp2 now\" immediately [simulate_interventions]. \n\nThis action yields a net benefit of $4,327 [simulate_interventions] by avoiding $6,697 [simulate_interventions] in losses against an intervention cost of $2,370 [simulate_interventions]. \n\nIt beats the alternatives because doing nothing leaves an expected loss of $6,822 [simulate_interventions] with a 99.9% failure chance [simulate_interventions]. Having machine 47 cover production provides a slightly lower net benefit of $4,224 [simulate_interventions], while a full service costs $7,140 [simulate_interventions] resulting in a negative net benefit of -$332 [simulate_interventions]. Slowing down 25% performs worst, with a net benefit of -$4,005 [simulate_interventions].\n\nCurrently, machine 90 faces a 99.8% chance of comp2 failing [get_machine_risk]. Following the replacement, the remaining failure chance drops to 0.1% [simulate_interventions], leaving an expected loss of $126 [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 90
+     },
+     "result": {
+      "machine_id": 90,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Replace comp2 now",
+        "cost_usd": 2370,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 126,
+        "loss_avoided_usd": 6697,
+        "net_benefit_usd": 4327,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 47 covers",
+        "cost_usd": 2462,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 136,
+        "loss_avoided_usd": 6686,
+        "net_benefit_usd": 4224,
+        "note": "As replacing comp2, but machine 47 (same model, lowest risk) makes 17 of this machine's 37 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 99.9,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 6822,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 4,
+        "action": "Full service now",
+        "cost_usd": 7140,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 15,
+        "loss_avoided_usd": 6808,
+        "net_benefit_usd": -332,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 1800,
+        "failure_chance_after_pct": 98.5,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 9027,
+        "loss_avoided_usd": -2205,
+        "net_benefit_usd": -4005,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 90
+     },
+     "result": {
+      "machine_id": 90,
+      "model": "model2",
+      "age_years": 2,
+      "risk_level": "high",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 99.8,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": [
+       "1\u00d7 error2 in the last 24h",
+       "rotate 24h average 378.5 (fleet median 447.7)",
+       "1\u00d7 error3 in the last 24h"
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "bc64c1e0431ce244ad23ce6e2a52cd2b4dc15fe4821dea2ae93c4f82965c12a4": {
+   "text": "The recommended action for machine 34 is **Do nothing** right now [simulate_interventions]. \n\nThis option yields a net benefit of $0 [simulate_interventions], with $0 in cost [simulate_interventions] and $0 in loss avoided [simulate_interventions]. It ranks first [simulate_interventions] because every proactive intervention produces a net negative financial return: replacing comp2 with machine 50 covering results in a net benefit of -$4,866 [simulate_interventions], replacing comp2 now yields -$7,820 [simulate_interventions], slowing down 25% yields -$14,873 [simulate_interventions], and a full service yields -$17,750 [simulate_interventions]. \n\nMachine 34 is currently at a low risk level [get_machine_risk]. By doing nothing, the remaining risk is a failure chance of 1% [simulate_interventions] with an expected loss of $2,627 [simulate_interventions]. Its riskiest component is comp2 [get_machine_risk], though each component (comp1, comp2, comp3, and comp4) holds only a 0.2% failure chance over the next 24 hours [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 34
+     },
+     "result": {
+      "machine_id": 34,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 1.0,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 2627,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 50 covers",
+        "cost_usd": 6013,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1480,
+        "loss_avoided_usd": 1147,
+        "net_benefit_usd": -4866,
+        "note": "As replacing comp2, but machine 50 (same model, lowest risk) makes 21 of this machine's 46 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1477,
+        "loss_avoided_usd": 1150,
+        "net_benefit_usd": -7820,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.5,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 2500,
+        "loss_avoided_usd": 127,
+        "net_benefit_usd": -14873,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 2590,
+        "net_benefit_usd": -17750,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 34
+     },
+     "result": {
+      "machine_id": 34,
+      "model": "model4",
+      "age_years": 10,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.2,
+       "comp2": 0.2,
+       "comp3": 0.2,
+       "comp4": 0.2
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "e31bd636e668bd958b5e8f834f0283bd196cb929b3178291daa8a1041e0d8f25": {
+   "text": "The recommended action for machine 41 right now is \"Do nothing\" [simulate_interventions], meaning keep running as it is right now [simulate_interventions]. \n\nThis option yields a cost of $0 [simulate_interventions], loss avoided of $0 [simulate_interventions], and net benefit of $0 [simulate_interventions]. It ranks first [simulate_interventions] because every active intervention costs substantially more than the potential downtime it prevents. For example, replacing comp2 with machine 50 covering results in a net benefit of -$6,005 [simulate_interventions] at a cost of $6,191 [simulate_interventions], while replacing comp2 now costs $8,970 [simulate_interventions] for a net benefit of -$8,780 [simulate_interventions]. Slowing down 25% for 24h yields a net benefit of -$14,878 [simulate_interventions], and a full service now costs $20,340 [simulate_interventions] with a net benefit of -$19,244 [simulate_interventions]. \n\nThe remaining risk is low [get_machine_risk], with an overall failure chance of 1% [simulate_interventions] and an expected loss of $1,133 [simulate_interventions]. Across individual components, comp1, comp2, comp3, and comp4 each carry a failure chance of 0.2% [get_machine_risk], with comp2 identified as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 41
+     },
+     "result": {
+      "machine_id": 41,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 1.0,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1133,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 50 covers",
+        "cost_usd": 6191,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 947,
+        "loss_avoided_usd": 186,
+        "net_benefit_usd": -6005,
+        "note": "As replacing comp2, but machine 50 (same model, lowest risk) makes 21 of this machine's 49 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 944,
+        "loss_avoided_usd": 190,
+        "net_benefit_usd": -8780,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.5,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 1011,
+        "loss_avoided_usd": 122,
+        "net_benefit_usd": -14878,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 1096,
+        "net_benefit_usd": -19244,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 41
+     },
+     "result": {
+      "machine_id": 41,
+      "model": "model4",
+      "age_years": 9,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.2,
+       "comp2": 0.2,
+       "comp3": 0.2,
+       "comp4": 0.2
+      },
+      "drivers": []
+     }
+    },
+    {
+     "name": "get_risk_overview",
+     "args": {},
+     "result": {
+      "machines": [
+       {
+        "machine_id": 34,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 1.0,
+        "expected_loss_usd": 2627,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 41,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 1.0,
+        "expected_loss_usd": 1133,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 66,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 1.0,
+        "expected_loss_usd": 546,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 61,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 508,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 59,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 4875,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 76,
+        "model": "model2",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 3399,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 50,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 433,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 96,
+        "model": "model2",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 1097,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 82,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 1124,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 45,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.1,
+        "expected_loss_usd": 206,
+        "best_action": "Do nothing"
+       }
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "91159798f75a6ea49a5325ce559f087c48fa48144f52377e9d840b33e0eba521": {
+   "text": "The recommended action right now is to **Do nothing** and keep running as it is [simulate_interventions]. \n\n**Timing & Financials:**\nTake this action immediately (keep running). The intervention cost is $0 [simulate_interventions], loss avoided is $0 [simulate_interventions], and the net benefit is $0 [simulate_interventions].\n\n**Why it beats alternatives:**\nMachine 45 is currently at a low risk level [get_machine_risk]. Any intervention would result in a substantial net loss due to downtime and maintenance costs. For instance:\n- Replacing comp2 with machine 82 covering yields a net benefit of -$5,705 [simulate_interventions] with a cost of $5,702 [simulate_interventions].\n- Replacing comp2 now costs $8,970 [simulate_interventions] for a net benefit of -$8,970 [simulate_interventions].\n- A full service now costs $20,340 [simulate_interventions] with a net benefit of -$20,171 [simulate_interventions].\n\n**Remaining Risk:**\nThe machine's failure chance remains at 0.1% [simulate_interventions], carrying an expected loss of $206 [simulate_interventions]. Across individual parts, comp1, comp2, comp3, and comp4 each have a failure chance of 0% [get_machine_risk], with comp2 identified as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 45
+     },
+     "result": {
+      "machine_id": 45,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 206,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 82 covers",
+        "cost_usd": 5702,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 208,
+        "loss_avoided_usd": -2,
+        "net_benefit_usd": -5705,
+        "note": "As replacing comp2, but machine 82 (same model, lowest risk) makes 21 of this machine's 42 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 205,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": -8970,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 186,
+        "loss_avoided_usd": 19,
+        "net_benefit_usd": -14981,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 169,
+        "net_benefit_usd": -20171,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 45
+     },
+     "result": {
+      "machine_id": 45,
+      "model": "model3",
+      "age_years": 14,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "72da1f27c67ca75032e32a66e36579823a7acf92980637e3193b157eafcbbe2b": {
+   "text": "The recommended action for machine 50 right now is to **Do nothing** and keep running as it is [simulate_interventions]. \n\n**When to do it:** Immediately (maintain standard operation).\n\n**Financial impact:** The action costs $0 [simulate_interventions], provides $0 loss avoided [simulate_interventions], and yields a net benefit of $0 [simulate_interventions]. \n\n**Why it beats the alternatives:** Machine 50 is already at low risk [get_machine_risk]. Any intervention would result in a substantial net loss due to downtime and maintenance expenses. For example, replacing comp2 (with machine 61 covering) yields a net benefit of -$5,200 [simulate_interventions], replacing comp2 now yields -$8,966 [simulate_interventions], slowing down 25% yields -$14,972 [simulate_interventions], and a full service yields -$19,944 [simulate_interventions]. Doing nothing ranks first [simulate_interventions].\n\n**Remaining risk:** If left running, the machine has an expected loss of $433 [simulate_interventions] and a failure chance of 0.1% [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 50
+     },
+     "result": {
+      "machine_id": 50,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 433,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 61 covers",
+        "cost_usd": 5199,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 433,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": -5200,
+        "note": "As replacing comp2, but machine 61 (same model, lowest risk) makes 24 of this machine's 42 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 429,
+        "loss_avoided_usd": 4,
+        "net_benefit_usd": -8966,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 405,
+        "loss_avoided_usd": 28,
+        "net_benefit_usd": -14972,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 396,
+        "net_benefit_usd": -19944,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 50
+     },
+     "result": {
+      "machine_id": 50,
+      "model": "model4",
+      "age_years": 4,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "6736fcb5a3bdb228ac5d6e96822f414c592280adbbf4a741f82c6c8de60d4637": {
+   "text": "The recommended action for machine 59 right now is \"Do nothing\" [simulate_interventions], meaning keep running as it is. \n\nTaking action now does not save money: the loss avoided is $0 [simulate_interventions], and the net benefit is $0 [simulate_interventions]. \n\n\"Do nothing\" beats all alternatives because every intervention creates a net loss. Intervening immediately would yield negative net benefits: replacing comp2 with machine 45 covering results in a net benefit of -$5,335 [simulate_interventions], replacing comp2 now yields -$8,954 [simulate_interventions], slowing down 25% for 24h yields -$14,901 [simulate_interventions], and a full service yields -$15,501 [simulate_interventions]. The machine's risk level is \"low\" [get_machine_risk], and component failure chances for comp1, comp2, comp3, and comp4 are all 0% [get_machine_risk].\n\nThe remaining risk if machine 59 keeps running is an expected loss of $4,875 [simulate_interventions] and a failure chance after of 0.2% [simulate_interventions], with comp2 identified as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 59
+     },
+     "result": {
+      "machine_id": 59,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 4875,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 45 covers",
+        "cost_usd": 5349,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 4861,
+        "loss_avoided_usd": 14,
+        "net_benefit_usd": -5335,
+        "note": "As replacing comp2, but machine 45 (same model, lowest risk) makes 21 of this machine's 38 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 4860,
+        "loss_avoided_usd": 16,
+        "net_benefit_usd": -8954,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 4777,
+        "loss_avoided_usd": 99,
+        "net_benefit_usd": -14901,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 4839,
+        "net_benefit_usd": -15501,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 59
+     },
+     "result": {
+      "machine_id": 59,
+      "model": "model3",
+      "age_years": 17,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "c2e8af0e29d5e69c51835969e52717d3c84cb24b03b611631fa19c33bbfd5fb4": {
+   "text": "Recommend action: **Do nothing** [simulate_interventions].\n\nWhen to do it: Right now (keep running as it is) [simulate_interventions].\n\nMoney saved / Net benefit: It yields a net benefit of $0 [simulate_interventions] at a cost of $0 [simulate_interventions].\n\nWhy it beats alternatives: Machine 61 is currently assessed at \"low\" risk [get_machine_risk]. Any intervention results in a substantial financial loss rather than savings. For example, replacing comp2 with machine 50 covering costs $6,177 [simulate_interventions] for a net benefit of -$6,173 [simulate_interventions], replacing comp2 costs $8,970 [simulate_interventions] for a net benefit of -$8,962 [simulate_interventions], and a full service costs $20,340 [simulate_interventions] with a net benefit of -$19,869 [simulate_interventions]. \n\nWhat risk remains: The machine retains a failure chance of 0.2% [simulate_interventions] and an expected loss of $508 [simulate_interventions]. Each individual component (comp1, comp2, comp3, comp4) currently shows a 0% [get_machine_risk] chance of failure over the next 24 hours.",
+   "tool_calls": [
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 61
+     },
+     "result": {
+      "machine_id": 61,
+      "model": "model4",
+      "age_years": 2,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    },
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 61
+     },
+     "result": {
+      "machine_id": 61,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 508,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 50 covers",
+        "cost_usd": 6177,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 503,
+        "loss_avoided_usd": 5,
+        "net_benefit_usd": -6173,
+        "note": "As replacing comp2, but machine 50 (same model, lowest risk) makes 21 of this machine's 48 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 500,
+        "loss_avoided_usd": 8,
+        "net_benefit_usd": -8962,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 476,
+        "loss_avoided_usd": 32,
+        "net_benefit_usd": -14968,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 471,
+        "net_benefit_usd": -19869,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "370791e3fbf7eecdeefbf2547fa74f30eed0eebf0535fb3349d57623c6a16a8f": {
+   "text": "The recommendation for machine 66 right now is to **Do nothing** and keep it running as it is [simulate_interventions]. \n\nThis action carries a cost of $0 [simulate_interventions], saves $0 [simulate_interventions] in avoided loss, and yields a net benefit of $0 [simulate_interventions]. \n\n\"Do nothing\" beats all alternatives because taking preventive action costs far more than the damage it prevents:\n- Replacing comp2 now costs $8,970 [simulate_interventions] for a net benefit of -$8,793 [simulate_interventions].\n- Replacing comp2 with machine 50 covering costs $5,535 [simulate_interventions] for a net benefit of -$5,361 [simulate_interventions].\n- Slowing down 25% costs $15,000 [simulate_interventions] with a net benefit of -$14,902 [simulate_interventions].\n- A full service costs $20,340 [simulate_interventions] with a net benefit of -$19,831 [simulate_interventions].\n\nThe remaining risk under \"Do nothing\" is an expected loss of $546 [simulate_interventions] and a failure chance of 1% [simulate_interventions] over the next 24 hours. The riskiest component is comp2 with a 0.2% [get_machine_risk] component failure chance, matching comp1 (0.2% [get_machine_risk]), comp3 (0.2% [get_machine_risk]), and comp4 (0.2% [get_machine_risk]).",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 66
+     },
+     "result": {
+      "machine_id": 66,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 1.0,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 546,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 50 covers",
+        "cost_usd": 5535,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 372,
+        "loss_avoided_usd": 174,
+        "net_benefit_usd": -5361,
+        "note": "As replacing comp2, but machine 50 (same model, lowest risk) makes 21 of this machine's 40 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 369,
+        "loss_avoided_usd": 177,
+        "net_benefit_usd": -8793,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.5,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 448,
+        "loss_avoided_usd": 98,
+        "net_benefit_usd": -14902,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 509,
+        "net_benefit_usd": -19831,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 66
+     },
+     "result": {
+      "machine_id": 66,
+      "model": "model4",
+      "age_years": 6,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.2,
+       "comp2": 0.2,
+       "comp3": 0.2,
+       "comp4": 0.2
+      },
+      "drivers": []
+     }
+    },
+    {
+     "name": "get_risk_overview",
+     "args": {},
+     "result": {
+      "machines": [
+       {
+        "machine_id": 34,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 1.0,
+        "expected_loss_usd": 2627,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 41,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 1.0,
+        "expected_loss_usd": 1133,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 66,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 1.0,
+        "expected_loss_usd": 546,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 61,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 508,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 59,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 4875,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 76,
+        "model": "model2",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 3399,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 50,
+        "model": "model4",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 433,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 96,
+        "model": "model2",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 1097,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 82,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.2,
+        "expected_loss_usd": 1124,
+        "best_action": "Do nothing"
+       },
+       {
+        "machine_id": 45,
+        "model": "model3",
+        "risk_level": "low",
+        "riskiest_component": "comp2",
+        "failure_chance_pct": 0.1,
+        "expected_loss_usd": 206,
+        "best_action": "Do nothing"
+       }
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "2516de103d6fd3fbb28ce6f8561510689b91a68dba44dc6383b746f791b7bca7": {
+   "text": "The recommendation for machine 76 right now is to **Do nothing** and keep running as it is [simulate_interventions]. \n\nThis action costs $0 [simulate_interventions] with a net benefit of $0 [simulate_interventions]. It beats all alternative interventions because every proactive repair results in a net financial loss: replacing comp2 with machine 96 covering produces a net benefit of -$5,953 [simulate_interventions], replacing comp2 now yields -$8,959 [simulate_interventions], slowing down 25% for 24h yields -$14,927 [simulate_interventions], and a full service now results in -$16,985 [simulate_interventions]. The failure probabilities across all parts are minimal, with failure chances for comp1 at 0% [get_machine_risk], comp2 at 0% [get_machine_risk], comp3 at 0% [get_machine_risk], and comp4 at 0% [get_machine_risk].\n\nThe remaining risk is an overall failure chance of 0.1% [simulate_interventions], leaving an expected loss of $3,399 [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 76
+     },
+     "result": {
+      "machine_id": 76,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 3399,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 96 covers",
+        "cost_usd": 5962,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 3390,
+        "loss_avoided_usd": 9,
+        "net_benefit_usd": -5953,
+        "note": "As replacing comp2, but machine 96 (same model, lowest risk) makes 17 of this machine's 37 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 3388,
+        "loss_avoided_usd": 11,
+        "net_benefit_usd": -8959,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 3326,
+        "loss_avoided_usd": 73,
+        "net_benefit_usd": -14927,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 44,
+        "loss_avoided_usd": 3355,
+        "net_benefit_usd": -16985,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 76
+     },
+     "result": {
+      "machine_id": 76,
+      "model": "model2",
+      "age_years": 10,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "64021a7fcaf2fdae20a21fb2c1a17ef1fd2eeb785c02ee2f894d13903a107ee9": {
+   "text": "For machine 82 right now, the recommended action is to **Do nothing** [simulate_interventions]. Keep the machine running as it is immediately. \n\nThis option delivers a net benefit of $0 [simulate_interventions] and incurs a cost of $0 [simulate_interventions]. It clearly beats the alternatives because all active interventions result in substantial negative net benefits. For instance, replacing comp2 with machine 45 covering yields a net benefit of -$4,739 [simulate_interventions], replacing comp2 now results in -$7,970 [simulate_interventions], slowing down 25% for 24h yields -$14,969 [simulate_interventions], and a full service now results in -$19,252 [simulate_interventions]. The costs of intervening far outweigh the small expected losses.\n\nThe machine's overall risk level is low [get_machine_risk]. By doing nothing, the remaining failure chance after is 0.1% [simulate_interventions], with an expected loss after of $1,124 [simulate_interventions]. Looking across individual parts, the 24-hour failure chance for comp1 is 0% [get_machine_risk], comp2 is 0% [get_machine_risk], comp3 is 0% [get_machine_risk], and comp4 is 0% [get_machine_risk], with comp2 noted as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 82
+     },
+     "result": {
+      "machine_id": 82,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1124,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 45 covers",
+        "cost_usd": 5738,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 126,
+        "loss_avoided_usd": 999,
+        "net_benefit_usd": -4739,
+        "note": "As replacing comp2, but machine 45 (same model, lowest risk) makes 21 of this machine's 42 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 124,
+        "loss_avoided_usd": 1000,
+        "net_benefit_usd": -7970,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 1093,
+        "loss_avoided_usd": 31,
+        "net_benefit_usd": -14969,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 1088,
+        "net_benefit_usd": -19252,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 82
+     },
+     "result": {
+      "machine_id": 82,
+      "model": "model3",
+      "age_years": 11,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "ebc19df2d1a5f20d5bed79297401721adeab10c0d8b6c7d75b7e2e255813fd61": {
+   "text": "For machine 96 right now, the recommended action is to **Do nothing** [simulate_interventions]. Keep it running as it is immediately, as taking no action carries a cost of $0 [simulate_interventions] and a net benefit of $0 [simulate_interventions].\n\nThis beats every intervention because machine 96 is already at low risk [get_machine_risk]. Any active intervention costs far more than the damage it prevents. For instance, replacing comp2 while machine 76 covers has a net benefit of -$5,334 [simulate_interventions], replacing comp2 now yields -$8,835 [simulate_interventions], slowing down 25% yields -$14,972 [simulate_interventions], and a full service yields -$19,287 [simulate_interventions]. \n\nThe remaining risk is minimal: each component (comp1, comp2, comp3, comp4) currently shows a 0% failure chance [get_machine_risk], with an overall failure chance after doing nothing of 0.1% [simulate_interventions] and an expected loss of $1,097 [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 96
+     },
+     "result": {
+      "machine_id": 96,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1097,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 76 covers",
+        "cost_usd": 5461,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 969,
+        "loss_avoided_usd": 128,
+        "net_benefit_usd": -5334,
+        "note": "As replacing comp2, but machine 76 (same model, lowest risk) makes 19 of this machine's 35 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 963,
+        "loss_avoided_usd": 135,
+        "net_benefit_usd": -8835,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 1069,
+        "loss_avoided_usd": 28,
+        "net_benefit_usd": -14972,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 44,
+        "loss_avoided_usd": 1053,
+        "net_benefit_usd": -19287,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 96
+     },
+     "result": {
+      "machine_id": 96,
+      "model": "model2",
+      "age_years": 10,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "31893b915e069a5984314c1347f2da6bdd5210509f39facae00ff611ecdffd1c": {
+   "text": "The recommended action right now is to **Do nothing** (keep running as it is) [simulate_interventions]. \n\nTiming: Continue current operation immediately with no planned intervention [simulate_interventions].\n\nFinancial impact: Taking no action has an intervention cost of $0 [simulate_interventions], avoided loss of $0 [simulate_interventions], and a net benefit of $0 [simulate_interventions]. \n\nWhy it beats alternatives: All active intervention options yield negative net benefits because their costs exceed the losses they avoid [simulate_interventions]. For instance, replacing comp2 with machine 79 covering yields a net benefit of -$1,243 [simulate_interventions] (cost $6,177 [simulate_interventions], loss avoided $4,935 [simulate_interventions]). Replacing comp2 now yields a net benefit of -$4,034 [simulate_interventions] (cost $8,970 [simulate_interventions]), slowing down 25% yields -$14,774 [simulate_interventions], and a full service yields -$15,334 [simulate_interventions]. Doing nothing ranks first overall [simulate_interventions].\n\nRemaining risk: Machine 26 currently carries a low risk level [get_machine_risk], but retains a failure chance of 0.7% [simulate_interventions] and an expected loss of $5,043 [simulate_interventions]. If a failure were to occur, total loss would reach $22,271 [get_cascade] with 8 hours of downtime [get_cascade] and 328 units not made [get_cascade].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 26
+     },
+     "result": {
+      "machine_id": 26,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.7,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 5043,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 79 covers",
+        "cost_usd": 6177,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 108,
+        "loss_avoided_usd": 4935,
+        "net_benefit_usd": -1243,
+        "note": "As replacing comp2, but machine 79 (same model, lowest risk) makes 18 of this machine's 41 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 106,
+        "loss_avoided_usd": 4936,
+        "net_benefit_usd": -4034,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.4,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 4817,
+        "loss_avoided_usd": 226,
+        "net_benefit_usd": -14774,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 5006,
+        "net_benefit_usd": -15334,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 26
+     },
+     "result": {
+      "machine_id": 26,
+      "model": "model3",
+      "age_years": 3,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.2,
+       "comp2": 0.2,
+       "comp3": 0.2,
+       "comp4": 0.2
+      },
+      "drivers": [
+       "rotate 24h average 386.9 (fleet median 449.5)"
+      ]
+     }
+    },
+    {
+     "name": "get_cascade",
+     "args": {
+      "machine_id": 26
+     },
+     "result": {
+      "machine_id": 26,
+      "product": "P-300",
+      "failure_chance_pct": 0.7,
+      "failure_at_hour": 12,
+      "downtime_hours": 8.0,
+      "units_not_made": 328,
+      "if_it_fails": {
+       "late_order_count": 0,
+       "late_orders": [],
+       "safety_stock_breached_at_hour": null,
+       "penalties_usd": 0,
+       "excess_scrap_usd": 351,
+       "downtime_cost_usd": 20000,
+       "repair_cost_usd": 1920,
+       "total_loss_usd": 22271
+      },
+      "if_it_keeps_running": {
+       "late_order_count": 0,
+       "late_orders": [],
+       "safety_stock_breached_at_hour": null,
+       "penalties_usd": 0,
+       "excess_scrap_usd": 4926,
+       "downtime_cost_usd": 0,
+       "repair_cost_usd": 0,
+       "total_loss_usd": 4926
+      },
+      "expected_loss_usd": 5043
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "925035f8794d259d4044a6d4ae29ca109fa1824218b19b917411967e431b04a0": {
+   "text": "The recommended action for machine 27 right now is \"Do nothing\" [simulate_interventions], keeping it running as it is. \n\nThis action carries a cost of $0 [simulate_interventions], yields a loss avoided of $0 [simulate_interventions], and delivers a net benefit of $0 [simulate_interventions]. It ranks first [simulate_interventions] among all options because every maintenance intervention produces a negative net benefit: replacing comp2 with machine 79 covering yields a net benefit of -$6,258 [simulate_interventions], replacing comp2 now yields -$8,881 [simulate_interventions], a full service yields -$11,872 [simulate_interventions], and slowing down 25% yields -$14,845 [simulate_interventions]. Machine 27 is currently classified at a low [get_machine_risk] risk level, with component failure chances of 0% [get_machine_risk] across comp1, comp2, comp3, and comp4 [get_machine_risk].\n\nThe remaining risk if you do nothing is an expected loss of $8,505 [simulate_interventions] and a failure chance of 0.2% [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 27
+     },
+     "result": {
+      "machine_id": 27,
+      "model": "model3",
+      "age_years": 9,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    },
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 27
+     },
+     "result": {
+      "machine_id": 27,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 8505,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 79 covers",
+        "cost_usd": 6345,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 8418,
+        "loss_avoided_usd": 87,
+        "net_benefit_usd": -6258,
+        "note": "As replacing comp2, but machine 79 (same model, lowest risk) makes 18 of this machine's 43 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 8416,
+        "loss_avoided_usd": 89,
+        "net_benefit_usd": -8881,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 8468,
+        "net_benefit_usd": -11872,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 8350,
+        "loss_avoided_usd": 155,
+        "net_benefit_usd": -14845,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "c1ed2e8f615693417e6ef9c0d9447372456fb60232c414dee8e1a187d6018a33": {
+   "text": "The recommended action right now is **Replace comp2, machine 92 covers** [simulate_interventions]. Execute it now for a 3-hour stop where machine 92 covers 16 of machine 31's 32 units/h [simulate_interventions]. \n\nThis action provides a net benefit of $14,486 [simulate_interventions] by avoiding $20,183 [simulate_interventions] in losses at an intervention cost of $5,696 [simulate_interventions]. \n\nIt beats the alternatives because having machine 92 provide backup cuts intervention costs compared to an uncovered replacement (\"Replace comp2 now\"), which yields a lower net benefit of $11,298 [simulate_interventions]. Meanwhile, doing nothing leaves an expected loss of $23,698 [simulate_interventions], a full service yields a negative net benefit of -$1,968 [simulate_interventions], and slowing down 25% results in a net loss of -$14,617 [simulate_interventions].\n\nAfter this intervention, a remaining failure chance of 0.2% [simulate_interventions] and an expected loss of $3,516 [simulate_interventions] remain.",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 31
+     },
+     "result": {
+      "machine_id": 31,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Replace comp2, machine 92 covers",
+        "cost_usd": 5696,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 3516,
+        "loss_avoided_usd": 20183,
+        "net_benefit_usd": 14486,
+        "note": "As replacing comp2, but machine 92 (same model, lowest risk) makes 16 of this machine's 32 units/h during the 3h stop."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 3431,
+        "loss_avoided_usd": 20268,
+        "net_benefit_usd": 11298,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 3,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.5,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 23698,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 4,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 5327,
+        "loss_avoided_usd": 18372,
+        "net_benefit_usd": -1968,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.3,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 23315,
+        "loss_avoided_usd": 383,
+        "net_benefit_usd": -14617,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 31
+     },
+     "result": {
+      "machine_id": 31,
+      "model": "model1",
+      "age_years": 11,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.1,
+       "comp2": 0.1,
+       "comp3": 0.1,
+       "comp4": 0.1
+      },
+      "drivers": [
+       "rotate 24h average 356.4 (fleet median 449.5)"
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "31bf6250f7af9ec116bf1a839eeb77def4f019dfd8466b4e364f68c7bb70747b": {
+   "text": "The recommended action is **Replace comp1, machine 79 covers** during a planned 3-hour stop [simulate_interventions]. \n\nThis action delivers a net benefit of $719 [simulate_interventions], avoiding $6,618 in losses [simulate_interventions] at an intervention cost of $5,899 [simulate_interventions]. \n\nIt beats every alternative because having machine 79 produce 18 of machine 33's 38 units/h during downtime offsets production losses [simulate_interventions]. In contrast, doing nothing risks an expected loss of $7,120 [simulate_interventions]. Replacing comp1 without machine 79 coverage loses money with a net benefit of -$2,351 [simulate_interventions] ($8,970 cost [simulate_interventions]), a full service yields a net benefit of -$13,257 [simulate_interventions] ($20,340 cost [simulate_interventions]), and slowing down 25% yields a net benefit of -$14,229 [simulate_interventions] ($15,000 cost [simulate_interventions]).\n\nThe remaining risk after the swap is an expected loss of $502 [simulate_interventions] and a 0.1% failure chance [simulate_interventions] (down from 8.4% [simulate_interventions]). Minor residual baseline risks also remain across the unreplaced parts: comp2 at 1.5% [get_machine_risk], comp3 at 1.5% [get_machine_risk], and comp4 at 1.5% [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 33
+     },
+     "result": {
+      "machine_id": 33,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Replace comp1, machine 79 covers",
+        "cost_usd": 5899,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 502,
+        "loss_avoided_usd": 6618,
+        "net_benefit_usd": 719,
+        "note": "As replacing comp1, but machine 79 (same model, lowest risk) makes 18 of this machine's 38 units/h during the 3h stop."
+       },
+       {
+        "rank": 2,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 8.4,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 7120,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp1 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 501,
+        "loss_avoided_usd": 6619,
+        "net_benefit_usd": -2351,
+        "note": "Planned 3h swap of comp1 now: its age resets and volt returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 7083,
+        "net_benefit_usd": -13257,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 4.8,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 6349,
+        "loss_avoided_usd": 771,
+        "net_benefit_usd": -14229,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 33
+     },
+     "result": {
+      "machine_id": 33,
+      "model": "model3",
+      "age_years": 14,
+      "risk_level": "low",
+      "riskiest_component": "comp1",
+      "component_failure_chance_pct": {
+       "comp1": 3.8,
+       "comp2": 1.5,
+       "comp3": 1.5,
+       "comp4": 1.5
+      },
+      "drivers": [
+       "volt 24h average 192.7 (fleet median 171.4)"
+      ]
+     }
+    },
+    {
+     "name": "get_cascade",
+     "args": {
+      "machine_id": 33
+     },
+     "result": {
+      "machine_id": 33,
+      "product": "P-300",
+      "failure_chance_pct": 8.4,
+      "failure_at_hour": 12,
+      "downtime_hours": 8.0,
+      "units_not_made": 302,
+      "if_it_fails": {
+       "late_order_count": 0,
+       "late_orders": [],
+       "safety_stock_breached_at_hour": null,
+       "penalties_usd": 0,
+       "excess_scrap_usd": 360,
+       "downtime_cost_usd": 20000,
+       "repair_cost_usd": 1920,
+       "total_loss_usd": 22280
+      },
+      "if_it_keeps_running": {
+       "late_order_count": 0,
+       "late_orders": [],
+       "safety_stock_breached_at_hour": null,
+       "penalties_usd": 0,
+       "excess_scrap_usd": 5735,
+       "downtime_cost_usd": 0,
+       "repair_cost_usd": 0,
+       "total_loss_usd": 5735
+      },
+      "expected_loss_usd": 7120
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "574da7e83ebcaf8111d8e82b67f76211dd3ac30468052508fc9022fa667ea6db": {
+   "text": "The recommended action right now is to **Do nothing** and keep running as it is [simulate_interventions]. \n\nThis option has a cost of $0 [simulate_interventions], gives a net benefit of $0 [simulate_interventions], and avoids $0 [simulate_interventions] in losses. It beats every alternative intervention because all maintenance actions create substantial net negative returns. For example, replacing comp2 with machine 94 covering yields a net benefit of -$5,149 [simulate_interventions], replacing comp2 now yields -$8,786 [simulate_interventions], slowing down 25% for 24h yields -$14,894 [simulate_interventions], and a full service now yields -$19,751 [simulate_interventions].\n\nThe overall risk level for machine 73 is low [get_machine_risk]. The remaining risk if it continues running is an expected loss of $626 [simulate_interventions] and a failure chance of 1% [simulate_interventions]. Individual component failure chances over the next 24 hours are 0.2% for comp1 [get_machine_risk], 0.2% for comp2 [get_machine_risk], 0.2% for comp3 [get_machine_risk], and 0.2% for comp4 [get_machine_risk], with the primary driver being that comp4 was last replaced 123 days ago [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 73
+     },
+     "result": {
+      "machine_id": 73,
+      "model": "model2",
+      "age_years": 20,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.2,
+       "comp2": 0.2,
+       "comp3": 0.2,
+       "comp4": 0.2
+      },
+      "drivers": [
+       "comp4 last replaced 123 days ago"
+      ]
+     }
+    },
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 73
+     },
+     "result": {
+      "machine_id": 73,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 1.0,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 626,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 94 covers",
+        "cost_usd": 5329,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 445,
+        "loss_avoided_usd": 181,
+        "net_benefit_usd": -5149,
+        "note": "As replacing comp2, but machine 94 (same model, lowest risk) makes 19 of this machine's 34 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 442,
+        "loss_avoided_usd": 184,
+        "net_benefit_usd": -8786,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.5,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 520,
+        "loss_avoided_usd": 106,
+        "net_benefit_usd": -14894,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 589,
+        "net_benefit_usd": -19751,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "2ad856bb49f2a1ae0662513b445b3439aeb6b876a90cf4951d40bac778556432": {
+   "text": "Recommend action: **Do nothing** [simulate_interventions]. \nTiming: Keep running as it is right now [simulate_interventions]. \nFinancial impact: Cost is $0 [simulate_interventions], avoiding $0 [simulate_interventions] in unnecessary intervention spending with a net benefit of $0 [simulate_interventions].\n\nWhy it beats alternatives:\nMachine 77 is currently categorized at low risk [get_machine_risk]. Any intervention right now destroys value because maintenance costs far exceed expected savings:\n- Replacing comp2 now costs $8,970 [simulate_interventions] for a net benefit of -$8,958 [simulate_interventions].\n- Slowing down 25% for 24h costs $15,000 [simulate_interventions] for a net benefit of -$17,639 [simulate_interventions].\n- A full service now costs $20,340 [simulate_interventions] for a net benefit of -$19,544 [simulate_interventions].\n\nRemaining risk:\nMachine 77 retains an expected loss of $2,097 [simulate_interventions] and a failure chance after doing nothing of 0.1% [simulate_interventions]. Its component failure chances over the next 24 hours are 0% for comp1, 0% for comp2, 0% for comp3, and 0% for comp4 [get_machine_risk], with comp2 noted as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 77
+     },
+     "result": {
+      "machine_id": 77,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 2097,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 2085,
+        "loss_avoided_usd": 12,
+        "net_benefit_usd": -8958,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 3,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 4736,
+        "loss_avoided_usd": -2639,
+        "net_benefit_usd": -17639,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 4,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 1301,
+        "loss_avoided_usd": 796,
+        "net_benefit_usd": -19544,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 77
+     },
+     "result": {
+      "machine_id": 77,
+      "model": "model4",
+      "age_years": 12,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "316d49fd2f6250d530af2cafcc5dfb3004ca1eec3ffd142ee90a14a944cdd6e9": {
+   "text": "The recommended action for machine 79 right now is \"Do nothing\" [simulate_interventions], meaning keep running as it is [simulate_interventions]. \n\nThis option costs $0 [simulate_interventions] and yields a net benefit of $0 [simulate_interventions]. It beats all alternative interventions because every proactive measure results in a negative net benefit: replacing comp2 with machine 27 covering yields a net benefit of -$4,989 [simulate_interventions], replacing comp2 now yields -$8,967 [simulate_interventions], slowing down 25% for 24h yields -$14,978 [simulate_interventions], and a full service now yields -$20,156 [simulate_interventions]. Proactive interventions cost far more than the minimal loss avoided, such as only $3 [simulate_interventions] avoided for replacing comp2 now at a cost of $8,970 [simulate_interventions].\n\nThe remaining risk is very low: the failure chance is 0.2% [get_cascade], and component failure chances for comp1, comp2, comp3, and comp4 are all 0% [get_machine_risk]. If it keeps running, the expected loss after is $221 [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 79
+     },
+     "result": {
+      "machine_id": 79,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 221,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 27 covers",
+        "cost_usd": 4970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 240,
+        "loss_avoided_usd": -19,
+        "net_benefit_usd": -4989,
+        "note": "As replacing comp2, but machine 27 (same model, lowest risk) makes 22 of this machine's 36 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 218,
+        "loss_avoided_usd": 3,
+        "net_benefit_usd": -8967,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 199,
+        "loss_avoided_usd": 22,
+        "net_benefit_usd": -14978,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 184,
+        "net_benefit_usd": -20156,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 79
+     },
+     "result": {
+      "machine_id": 79,
+      "model": "model3",
+      "age_years": 14,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    },
+    {
+     "name": "get_cascade",
+     "args": {
+      "machine_id": 79
+     },
+     "result": {
+      "machine_id": 79,
+      "product": "P-300",
+      "failure_chance_pct": 0.2,
+      "failure_at_hour": 12,
+      "downtime_hours": 8.0,
+      "units_not_made": 288,
+      "if_it_fails": {
+       "late_order_count": 0,
+       "late_orders": [],
+       "safety_stock_breached_at_hour": 72.0,
+       "penalties_usd": 0,
+       "excess_scrap_usd": 12,
+       "downtime_cost_usd": 20000,
+       "repair_cost_usd": 1920,
+       "total_loss_usd": 21932
+      },
+      "if_it_keeps_running": {
+       "late_order_count": 0,
+       "late_orders": [],
+       "safety_stock_breached_at_hour": null,
+       "penalties_usd": 0,
+       "excess_scrap_usd": 185,
+       "downtime_cost_usd": 0,
+       "repair_cost_usd": 0,
+       "total_loss_usd": 185
+      },
+      "expected_loss_usd": 221
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "126f7a7e3b545662099003991203bdc702502df5555f09d33cdac79883a4be8e": {
+   "text": "The recommended action right now is **Replace comp3, machine 31 covers** [simulate_interventions]. Perform this during the planned 3h stop [simulate_interventions]. \n\nThis option achieves a net benefit of $18,424 [simulate_interventions] by avoiding $24,168 [simulate_interventions] in losses at an intervention cost of $5,744 [simulate_interventions]. \n\nIt beats the alternatives because machine 92 has a 99.8% [get_machine_risk] chance of comp3 failing due to high pressure and recent error codes. By having machine 31 cover 16 of machine 92's 32 units/h [simulate_interventions], it avoids unbacked downtime losses. This delivers a higher net benefit than replacing comp3 without coverage ($13,275 [simulate_interventions]), a full service ($2,269 [simulate_interventions]), slowing down (-$14,710 [simulate_interventions]), or doing nothing ($0 [simulate_interventions]), which carries an expected loss of $27,936 [simulate_interventions].\n\nAfter this intervention, the remaining failure risk drops to 0.1% [simulate_interventions], leaving an expected loss of $3,768 [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 92
+     },
+     "result": {
+      "machine_id": 92,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Replace comp3, machine 31 covers",
+        "cost_usd": 5744,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 3768,
+        "loss_avoided_usd": 24168,
+        "net_benefit_usd": 18424,
+        "note": "As replacing comp3, but machine 31 (same model, lowest risk) makes 16 of this machine's 32 units/h during the 3h stop."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp3 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 5691,
+        "loss_avoided_usd": 22245,
+        "net_benefit_usd": 13275,
+        "note": "Planned 3h swap of comp3 now: its age resets and pressure returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 3,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 5327,
+        "loss_avoided_usd": 22609,
+        "net_benefit_usd": 2269,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 99.9,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 27936,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 98.4,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 27645,
+        "loss_avoided_usd": 290,
+        "net_benefit_usd": -14710,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 92
+     },
+     "result": {
+      "machine_id": 92,
+      "model": "model1",
+      "age_years": 2,
+      "risk_level": "high",
+      "riskiest_component": "comp3",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 99.8,
+       "comp4": 0.0
+      },
+      "drivers": [
+       "pressure 24h average 126.6 (fleet median 99.8)",
+       "1\u00d7 error4 in the last 24h"
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "ac610de9b1c0ce95a7160aa5e9972a6646b27fdaf293e356e44eaa6413d3d727": {
+   "text": "The recommended action right now is \"Do nothing\" [simulate_interventions]. Keep machine 94 running as it is [simulate_interventions]. \n\nThe action costs $0 [simulate_interventions] and delivers a net benefit of $0 [simulate_interventions] with $0 loss avoided [simulate_interventions]. It ranks first [simulate_interventions] because all alternative interventions result in negative net benefits: replacing comp2 while machine 73 covers yields a net benefit of -$6,075 [simulate_interventions], replacing comp2 now yields -$8,968 [simulate_interventions], slowing down 25% for 24h yields -$14,975 [simulate_interventions], and a full service now yields -$20,024 [simulate_interventions]. \n\nMachine 94 is currently at a \"low\" risk level [get_machine_risk]. The remaining failure chance in the next 24 hours is 0.1% [simulate_interventions], with an expected loss of $353 [simulate_interventions]. Each individual component\u2014comp1, comp2, comp3, and comp4\u2014shows a 0% failure chance [get_machine_risk], with comp2 noted as the riskiest component [get_machine_risk].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 94
+     },
+     "result": {
+      "machine_id": 94,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 353,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp2, machine 73 covers",
+        "cost_usd": 6074,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 354,
+        "loss_avoided_usd": -1,
+        "net_benefit_usd": -6075,
+        "note": "As replacing comp2, but machine 73 (same model, lowest risk) makes 17 of this machine's 37 units/h during the 3h stop."
+       },
+       {
+        "rank": 3,
+        "action": "Replace comp2 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 350,
+        "loss_avoided_usd": 2,
+        "net_benefit_usd": -8968,
+        "note": "Planned 3h swap of comp2 now: its age resets and rotate returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 0.1,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 328,
+        "loss_avoided_usd": 25,
+        "net_benefit_usd": -14975,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       },
+       {
+        "rank": 5,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 316,
+        "net_benefit_usd": -20024,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 94
+     },
+     "result": {
+      "machine_id": 94,
+      "model": "model2",
+      "age_years": 18,
+      "risk_level": "low",
+      "riskiest_component": "comp2",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 0.0
+      },
+      "drivers": []
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  },
+  "86c3cff6ad8dc38fa7979caef45d5d980fb992e725f2b3651dbb872a0ae125ec": {
+   "text": "Recommend action: **Replace comp4, machine 94 covers** [simulate_interventions]. \n\nDo this right now during a 3-hour stop [simulate_interventions]. Machine 94 can produce 19 [simulate_interventions] of machine 95's 35 units/h [simulate_interventions] to buffer output. This action delivers a net benefit of $16,699 [simulate_interventions] and avoids $22,171 [simulate_interventions] in losses at an intervention cost of $5,472 [simulate_interventions].\n\nWhy it beats alternatives: Machine 95 currently has a 99.8% [get_machine_risk] chance of comp4 failure in the next 24 hours driven by high vibration and an error code [get_machine_risk]. Doing nothing leaves an expected loss of $22,531 [simulate_interventions]. Replacing comp4 without shifting production to machine 94 costs more ($8,970 [simulate_interventions]), yielding a lower net benefit of $13,204 [simulate_interventions]. A full service has a steep cost of $20,340 [simulate_interventions] (net benefit $2,154 [simulate_interventions]), while slowing down 25% provides a negative net benefit of -$14,656 [simulate_interventions].\n\nRemaining risk: Following the replacement, a 0.2% [simulate_interventions] failure chance remains, leaving an expected loss of $360 [simulate_interventions].",
+   "tool_calls": [
+    {
+     "name": "simulate_interventions",
+     "args": {
+      "machine_id": 95
+     },
+     "result": {
+      "machine_id": 95,
+      "options": [
+       {
+        "rank": 1,
+        "action": "Replace comp4, machine 94 covers",
+        "cost_usd": 5472,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 360,
+        "loss_avoided_usd": 22171,
+        "net_benefit_usd": 16699,
+        "note": "As replacing comp4, but machine 94 (same model, lowest risk) makes 19 of this machine's 35 units/h during the 3h stop."
+       },
+       {
+        "rank": 2,
+        "action": "Replace comp4 now",
+        "cost_usd": 8970,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 357,
+        "loss_avoided_usd": 22174,
+        "net_benefit_usd": 13204,
+        "note": "Planned 3h swap of comp4 now: its age resets and vibration returns to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 3,
+        "action": "Full service now",
+        "cost_usd": 20340,
+        "failure_chance_after_pct": 0.2,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 37,
+        "loss_avoided_usd": 22494,
+        "net_benefit_usd": 2154,
+        "note": "Planned 6h service now: all four components replaced and every sensor back to this machine's normal level. Failure chance re-predicted by the model."
+       },
+       {
+        "rank": 4,
+        "action": "Do nothing",
+        "cost_usd": 0,
+        "failure_chance_after_pct": 100.0,
+        "effect_basis": "model",
+        "expected_loss_after_usd": 22531,
+        "loss_avoided_usd": 0,
+        "net_benefit_usd": 0,
+        "note": "Keep running as it is."
+       },
+       {
+        "rank": 5,
+        "action": "Slow down 25% for 24h",
+        "cost_usd": 15000,
+        "failure_chance_after_pct": 98.6,
+        "effect_basis": "assumption",
+        "expected_loss_after_usd": 22186,
+        "loss_avoided_usd": 344,
+        "net_benefit_usd": -14656,
+        "note": "Assumed: running 25% slower cuts stress, so the failure hazard falls to 56% of today's. The model can't predict this: in this data low rotation is a symptom of failure, not a cure."
+       }
+      ]
+     }
+    },
+    {
+     "name": "get_machine_risk",
+     "args": {
+      "machine_id": 95
+     },
+     "result": {
+      "machine_id": 95,
+      "model": "model2",
+      "age_years": 18,
+      "risk_level": "high",
+      "riskiest_component": "comp4",
+      "component_failure_chance_pct": {
+       "comp1": 0.0,
+       "comp2": 0.0,
+       "comp3": 0.0,
+       "comp4": 99.8
+      },
+      "drivers": [
+       "vibration 24h average 48.8 (fleet median 40.6)",
+       "1\u00d7 error5 in the last 24h"
+      ]
+     }
+    }
+   ],
+   "unverified_numbers": [],
+   "retried": false,
+   "model": "gemini-3.8-flash",
+   "cached": false
+  }
+ },
+ "meta": {
+  "4a8ee1b074f9081031c42a283dc050bb71b6ffe6cd436dd3c89615e17ba31599": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 4,
+   "assumptions": {}
+  },
+  "1bbea4809e94f40abdae09c11c6a5e252521ad3d012d4907d13d9dd88e826787": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 19,
+   "assumptions": {}
+  },
+  "915710f9a3292371b7ed4f1c9133c98ef05d0a10cf7aa10e2e24c6c7e01c3bdd": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 26,
+   "assumptions": {}
+  },
+  "45f075ec990eb09de16caae0a7c761a80ab72bc7dcd6f01bf3b440bcec2327ec": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 44,
+   "assumptions": {}
+  },
+  "8ab53261e817360b49b4afb9be08bdcbdd609e11fe8607881a851756d69d1a8f": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 47,
+   "assumptions": {}
+  },
+  "4105cd5a3f33553656bb13c3c9070630831b60f595e9ed304caca296b6d48e4c": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 65,
+   "assumptions": {}
+  },
+  "4ab3774657d891e41fe21a5257b0fa0e3d1eb83563940bdeef4fff590ba6d4c7": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 72,
+   "assumptions": {}
+  },
+  "b329cd1dcf39bd6559814cbac9d1892f9badc0b4638170eb1e1979264563e4d3": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 86,
+   "assumptions": {}
+  },
+  "67b1e067a787ed05d1723d588ced7989d6db7ff9bc90f03ca8ed1f380d853956": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 90,
+   "assumptions": {}
+  },
+  "f2885d4edbbad4bdbee9fe49bdaca3b7e3a72293a14eae5d8ca759fd18e6034b": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 100,
+   "assumptions": {}
+  },
+  "8fdb0ba1165ae4b187bc91d26b1d073cf3b9f25987625ad77e346eda71f54cb4": {
+   "bundle": "comp2_failure_building",
+   "machine_id": 90,
+   "assumptions": {
+    "downtime_cost_per_hour": 300
+   }
+  },
+  "bc64c1e0431ce244ad23ce6e2a52cd2b4dc15fe4821dea2ae93c4f82965c12a4": {
+   "bundle": "healthy_fleet",
+   "machine_id": 34,
+   "assumptions": {}
+  },
+  "e31bd636e668bd958b5e8f834f0283bd196cb929b3178291daa8a1041e0d8f25": {
+   "bundle": "healthy_fleet",
+   "machine_id": 41,
+   "assumptions": {}
+  },
+  "91159798f75a6ea49a5325ce559f087c48fa48144f52377e9d840b33e0eba521": {
+   "bundle": "healthy_fleet",
+   "machine_id": 45,
+   "assumptions": {}
+  },
+  "72da1f27c67ca75032e32a66e36579823a7acf92980637e3193b157eafcbbe2b": {
+   "bundle": "healthy_fleet",
+   "machine_id": 50,
+   "assumptions": {}
+  },
+  "6736fcb5a3bdb228ac5d6e96822f414c592280adbbf4a741f82c6c8de60d4637": {
+   "bundle": "healthy_fleet",
+   "machine_id": 59,
+   "assumptions": {}
+  },
+  "c2e8af0e29d5e69c51835969e52717d3c84cb24b03b611631fa19c33bbfd5fb4": {
+   "bundle": "healthy_fleet",
+   "machine_id": 61,
+   "assumptions": {}
+  },
+  "370791e3fbf7eecdeefbf2547fa74f30eed0eebf0535fb3349d57623c6a16a8f": {
+   "bundle": "healthy_fleet",
+   "machine_id": 66,
+   "assumptions": {}
+  },
+  "2516de103d6fd3fbb28ce6f8561510689b91a68dba44dc6383b746f791b7bca7": {
+   "bundle": "healthy_fleet",
+   "machine_id": 76,
+   "assumptions": {}
+  },
+  "64021a7fcaf2fdae20a21fb2c1a17ef1fd2eeb785c02ee2f894d13903a107ee9": {
+   "bundle": "healthy_fleet",
+   "machine_id": 82,
+   "assumptions": {}
+  },
+  "ebc19df2d1a5f20d5bed79297401721adeab10c0d8b6c7d75b7e2e255813fd61": {
+   "bundle": "healthy_fleet",
+   "machine_id": 96,
+   "assumptions": {}
+  },
+  "31893b915e069a5984314c1347f2da6bdd5210509f39facae00ff611ecdffd1c": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 26,
+   "assumptions": {}
+  },
+  "925035f8794d259d4044a6d4ae29ca109fa1824218b19b917411967e431b04a0": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 27,
+   "assumptions": {}
+  },
+  "c1ed2e8f615693417e6ef9c0d9447372456fb60232c414dee8e1a187d6018a33": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 31,
+   "assumptions": {}
+  },
+  "31bf6250f7af9ec116bf1a839eeb77def4f019dfd8466b4e364f68c7bb70747b": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 33,
+   "assumptions": {}
+  },
+  "574da7e83ebcaf8111d8e82b67f76211dd3ac30468052508fc9022fa667ea6db": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 73,
+   "assumptions": {}
+  },
+  "2ad856bb49f2a1ae0662513b445b3439aeb6b876a90cf4951d40bac778556432": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 77,
+   "assumptions": {}
+  },
+  "316d49fd2f6250d530af2cafcc5dfb3004ca1eec3ffd142ee90a14a944cdd6e9": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 79,
+   "assumptions": {}
+  },
+  "126f7a7e3b545662099003991203bdc702502df5555f09d33cdac79883a4be8e": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 92,
+   "assumptions": {}
+  },
+  "ac610de9b1c0ce95a7160aa5e9972a6646b27fdaf293e356e44eaa6413d3d727": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 94,
+   "assumptions": {}
+  },
+  "86c3cff6ad8dc38fa7979caef45d5d980fb992e725f2b3651dbb872a0ae125ec": {
+   "bundle": "two_machines_at_risk",
+   "machine_id": 95,
+   "assumptions": {}
+  }
+ }
+}

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 from dataclasses import asdict
 from pathlib import Path
 
@@ -19,6 +20,14 @@ from factorymind.predict import MODEL_DIR
 
 # Local development reads GOOGLE_API_KEY from .env; Cloud Run uses Vertex AI settings instead.
 load_dotenv(Path(__file__).with_name(".env"))
+
+# FactoryMind's own log lines (e.g. cache hit or Gemini call) go to stderr, which Cloud Run keeps.
+_log = logging.getLogger("factorymind")
+_log.setLevel(logging.INFO)
+if not _log.handlers:  # Streamlit re-runs this script on every interaction
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(name)s %(levelname)s %(message)s"))
+    _log.addHandler(_handler)
 
 st.set_page_config(page_title="FactoryMind", page_icon="🏭", layout="wide")
 st.title("FactoryMind")
@@ -78,8 +87,32 @@ def assumption_panel() -> dict[str, float]:
 
 assumptions = assumption_panel()
 
-if not uploads:
-    st.info("Upload a bundle to start.")
+# Demo bundles shipped with the app: real Azure PdM telemetry plus synthetic business data.
+DEMO_DIR = Path(__file__).with_name("demo_bundles")
+DEMOS = {
+    "comp2_failure_building": "🔴 A comp2 failure building",
+    "two_machines_at_risk": "🟠 Two machines at risk",
+    "healthy_fleet": "🟢 A healthy fleet",
+}
+demos = {name: DEMO_DIR / f"{name}.zip" for name in DEMOS if (DEMO_DIR / f"{name}.zip").exists()}
+if demos:
+    st.markdown("**No data to hand? Try a demo bundle**: 10 machines × 30 days of real sensor "
+                "data from the Azure Predictive Maintenance dataset, with synthetic orders.")
+    for col, (name, path) in zip(st.columns(len(demos)), demos.items()):
+        if col.button(DEMOS[name], key=f"demo-{name}", width="stretch"):
+            st.session_state["demo"] = name
+        col.download_button("Download .zip", path.read_bytes(), file_name=path.name,
+                            key=f"download-{name}", width="stretch")
+
+if uploads:
+    files = {u.name: u.getvalue() for u in uploads}
+elif st.session_state.get("demo") in demos:
+    demo = st.session_state["demo"]
+    files = {demos[demo].name: demos[demo].read_bytes()}
+    st.success(f"Showing the demo bundle **{DEMOS[demo]}**. Upload your own files above to "
+               "analyse them instead.")
+else:
+    st.info("Upload a bundle, or pick a demo bundle above, to start.")
     st.stop()
 
 @st.cache_data(show_spinner="Analysing…", max_entries=8)
@@ -91,7 +124,7 @@ def run_analysis(files: tuple[tuple[str, bytes], ...], quality_horizon_hours: in
 # The horizon slider is drawn further down; read its value first so the analysis uses it.
 st.session_state.setdefault("horizon", DEFAULT_QUALITY_HORIZON_H)
 try:
-    report = run_analysis(tuple((u.name, u.getvalue()) for u in uploads),
+    report = run_analysis(tuple(files.items()),
                           st.session_state["horizon"], tuple(sorted(assumptions.items())))
 except BundleValidationError as exc:
     st.error(f"The bundle has {len(exc.errors)} problem(s). Fix them and upload again.")
@@ -356,13 +389,13 @@ with st.expander("How each action is simulated"):
     )
 
 st.markdown("#### 🤖 Gemini's recommendation")
-bundle_key = hashlib.sha256(b"".join(u.getvalue() for u in uploads)).hexdigest()[:16]
+bundle_key = hashlib.sha256(b"".join(files.values())).hexdigest()[:16]
 recs = st.session_state.setdefault("recommendations", {})
 rec_key = (bundle_key, machine_id, tuple(sorted(assumptions.items())))
 if st.button("Ask Gemini what to do", key=f"ask-{machine_id}", type="primary"):
     with st.spinner("Gemini is checking the risk, the cascade and the options…"):
         try:
-            recs[rec_key] = recommend({u.name: u.getvalue() for u in uploads}, machine_id,
+            recs[rec_key] = recommend(files, machine_id,
                                       assumptions)
         except Exception as exc:  # noqa: BLE001 - shown to the operator, not swallowed
             st.error(f"Gemini couldn't answer right now: {exc}")
@@ -378,7 +411,8 @@ else:
                    + ", ".join(rec.unverified_numbers))
     else:
         st.caption(f"✅ Every figure was checked against the tool results"
-                   f"{' after one rewrite' if rec.retried else ''} · {rec.model}")
+                   f"{' after one rewrite' if rec.retried else ''} · {rec.model}"
+                   f"{' · ⚡ cached answer, no new Gemini call' if rec.cached else ''}")
     with st.expander(f"Tools Gemini used ({len(rec.tool_calls)})"):
         for call in rec.tool_calls:
             args = ", ".join(f"{k}={v}" for k, v in call.args.items())
