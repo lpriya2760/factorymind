@@ -54,6 +54,18 @@ The code never chooses the provider. The `google-genai` client reads the environ
 
 Both were checked with the full agent: the same tools, the same recommendation and no unverified numbers.
 
+### Failing fast when a model is overloaded
+
+While building the chat (#10), questions appeared to **hang for minutes**. Tracing showed the Gemini client library silently **retrying 503 "overloaded" responses with exponential backoff**, for 30s or more per model call, before the fallback model ever got a chance. A first theory blamed threading; it was wrong, and that change was reverted.
+
+There are two fixes:
+1. **At most 2 attempts per call** (1–2s apart), via ADK's `Gemini(retry_options=…)`, so an overloaded model fails fast and the fallback takes over.
+2. **Overloaded models go to the back of the queue for 5 minutes,** so each question doesn't spend seconds rediscovering the overload.
+
+A first question that hits an overloaded model now takes about 10s, and later ones go straight to the working model.
+
+Locally, the free AI Studio key also has a **daily quota** (429), which a day of testing can exhaust. The deployed app uses Vertex AI, where this doesn't apply. The app tells the operator "Gemini is busy right now" instead of showing a raw API error.
+
 ## Testing without Gemini
 
 `tests/test_agent.py` replaces Gemini with a **scripted model** (a `BaseLlm` subclass that plays back tool calls and answers). It runs with sockets blocked and no key, and checks:

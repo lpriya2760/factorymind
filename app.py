@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind import quality
-from factorymind.agent import recommend
+from factorymind.agent import Chat, recommend
 from factorymind.assumptions import ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS
 from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H
 from factorymind.engine import DEFAULT_QUALITY_HORIZON_H, analyze
@@ -388,6 +388,14 @@ with st.expander("How each action is simulated"):
         + "\n".join(f"- **{o.label}**: {o.note}" for o in options)
     )
 
+
+def gemini_unavailable(exc: Exception) -> None:
+    """Explain a failed Gemini call in plain words; keep the details in the log."""
+    logging.getLogger("factorymind.app").warning("Gemini call failed: %s", exc)
+    busy = any(code in str(exc) for code in ("429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE"))
+    st.error("Gemini is busy right now (overloaded or over quota). Please try again in a minute."
+             if busy else f"Gemini couldn't answer right now: {exc}")
+
 st.markdown("#### 🤖 Gemini's recommendation")
 bundle_key = hashlib.sha256(b"".join(files.values())).hexdigest()[:16]
 recs = st.session_state.setdefault("recommendations", {})
@@ -398,7 +406,7 @@ if st.button("Ask Gemini what to do", key=f"ask-{machine_id}", type="primary"):
             recs[rec_key] = recommend(files, machine_id,
                                       assumptions)
         except Exception as exc:  # noqa: BLE001 - shown to the operator, not swallowed
-            st.error(f"Gemini couldn't answer right now: {exc}")
+            gemini_unavailable(exc)
 rec = recs.get(rec_key)
 if rec is None:
     st.caption("Gemini reads the same analysis through tools and explains the best action. "
@@ -418,3 +426,65 @@ else:
             args = ", ".join(f"{k}={v}" for k, v in call.args.items())
             st.markdown(f"**`{call.name}({args})`**")
             st.json(call.result, expanded=False)
+
+st.markdown("#### 💬 Ask FactoryMind")
+# One conversation per bundle and set of assumptions: if either changes, the data did too.
+chat_key = (bundle_key, tuple(sorted(assumptions.items())))
+if st.session_state.get("chat_key") != chat_key:
+    st.session_state["chat_key"] = chat_key
+    st.session_state["chat"] = Chat(files, assumptions)
+    st.session_state["chat_log"] = []
+chat = st.session_state["chat"]
+chat.focus_machine = machine_id
+chat_log = st.session_state["chat_log"]
+st.caption(f"Ask follow-up questions. Gemini answers with the same tools and every figure is "
+           f"checked. Questions are about machine {machine_id} unless you name another.")
+
+
+def show_reply(reply):
+    st.markdown(reply.text.replace("$", "\\$"))
+    if reply.unverified_numbers:
+        st.warning("Couldn't verify: " + ", ".join(reply.unverified_numbers))
+    else:
+        st.caption(f"✅ Figures checked{' after one rewrite' if reply.retried else ''} · "
+                   f"{reply.model}")
+    if reply.tool_calls:
+        with st.expander(f"Tools used ({len(reply.tool_calls)})"):
+            for call in reply.tool_calls:
+                args = ", ".join(f"{k}={v}" for k, v in call.args.items())
+                st.markdown(f"**`{call.name}({args})`**")
+                st.json(call.result, expanded=False)
+
+
+SUGGESTIONS = ["Which customers are affected if it fails?",
+               "What if we wait until the weekend?",
+               "Which machine should I worry about most?"]
+picked = None
+for col, suggestion in zip(st.columns(len(SUGGESTIONS)), SUGGESTIONS):
+    if col.button(suggestion, key=f"suggest-{suggestion}", width="stretch"):
+        picked = suggestion
+
+for asked, reply in chat_log:
+    with st.chat_message("user"):
+        st.markdown(asked.replace("$", "\\$"))
+    with st.chat_message("assistant"):
+        show_reply(reply)
+
+question = st.chat_input("Ask about the machines, the risks or the options…") or picked
+if question:
+    with st.chat_message("user"):
+        st.markdown(question.replace("$", "\\$"))
+    with st.chat_message("assistant"):
+        with st.spinner("Checking the data…"):
+            try:
+                reply = chat.ask(question)
+            except Exception as exc:  # noqa: BLE001 - shown to the operator, not swallowed
+                gemini_unavailable(exc)
+                reply = None
+        if reply:
+            chat_log.append((question, reply))
+            show_reply(reply)
+
+if chat_log and st.button("New conversation"):
+    st.session_state.pop("chat_key")
+    st.rerun()

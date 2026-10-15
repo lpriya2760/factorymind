@@ -99,6 +99,7 @@ def test_numbers_still_unverified_after_the_rewrite_are_reported(files):
 def test_overloaded_model_falls_back_to_the_next(monkeypatch, files):
     monkeypatch.setenv("FACTORYMIND_MODEL", "first-model")
     monkeypatch.setenv("FACTORYMIND_FALLBACK_MODELS", "second-model")
+    monkeypatch.setattr(agent, "_unavailable_until", {})
     tried = []
 
     async def fake(session, machine_id, model):
@@ -112,9 +113,21 @@ def test_overloaded_model_falls_back_to_the_next(monkeypatch, files):
     assert tried == ["first-model", "second-model"]
 
 
+def test_an_overloaded_model_is_tried_last_for_a_while(monkeypatch):
+    monkeypatch.setenv("FACTORYMIND_MODEL", "first-model")
+    monkeypatch.setenv("FACTORYMIND_FALLBACK_MODELS", "second-model")
+    monkeypatch.setattr(agent, "_unavailable_until", {})
+    agent._mark_overloaded("first-model")
+    assert agent.model_names() == ["second-model", "first-model"]
+    monkeypatch.setattr(agent, "OVERLOAD_COOLDOWN_S", -1)
+    agent._mark_overloaded("first-model")
+    assert agent.model_names() == ["first-model", "second-model"]
+
+
 def test_models_are_configured_by_environment(monkeypatch):
     monkeypatch.setenv("FACTORYMIND_MODEL", "gemini-x")
     monkeypatch.setenv("FACTORYMIND_FALLBACK_MODELS", "gemini-y, gemini-z")
+    monkeypatch.setattr(agent, "_unavailable_until", {})
     assert agent.model_names() == ["gemini-x", "gemini-y", "gemini-z"]
 
 
