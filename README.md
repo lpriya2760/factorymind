@@ -195,6 +195,29 @@ For each machine, FactoryMind evaluates five options. Each one **re-runs the cas
 
 **Why it's built this way:** see [ADR 0003](docs/adr/0003-intervention-simulator.md). It covers why a replacement also resets the sensor features, and why slowing down can't use the model, because low rotation is a symptom of failure.
 
+## Plant assumptions
+
+Every money figure and the ranking of actions depend on these. Edit them in the app's sidebar: the whole analysis, including Gemini's tools, re-runs straight away without re-uploading. **Reset to defaults** restores them, and changed values are listed.
+
+| Assumption | Default | Meaning |
+|---|---|---|
+| Downtime cost | 2500 $ per hour | Lost contribution for every hour a machine's output isn't made anywhere: unplanned repairs, planned stops and slowdowns all use it. |
+| Repair time after a failure | 8 hours | How long a machine is down after an unplanned component failure. |
+| Component cost | 1200 $ per part | Parts cost of replacing one component. |
+| Maintenance labour | 90 $ per hour | Technician cost for repairs, planned swaps and services. |
+| Scrap cost | 15 $ per defective unit | What a defective unit costs; drives the quality losses. |
+| Late-order penalty multiplier | 1 × | Scales every order's penalty per day late (1 = as in the orders file). |
+| Planned part swap | 3 hours | Planned stop to replace one component (parts staged, no secondary damage). |
+| Full service | 6 hours | Planned stop to replace all four components and recalibrate. |
+| Reroute setup cost | 500 $ | One-off cost of moving a job to another machine. |
+| Spare capacity on another machine | 0.5 share of its rate | How far above its scheduled rate another machine can run to cover (0.5 = +50%). |
+
+**Try it on `comp2_failure_building`.** Lower the downtime cost from $2,500 to $300 an hour:
+- Machine 90's expected loss falls from $24,412 to $6,822.
+- The best action changes from *replace comp2, machine 47 covers* to *replace comp2 now*, because with downtime that cheap the $500 reroute setup no longer pays.
+
+Figures built on synthetic inputs (inventory, production schedule, orders) carry a **synthetic data** badge.
+
 ## Gemini's recommendation
 
 In the machine view, **Ask Gemini what to do** runs an agent built with Google ADK (`factorymind/agent.py`). Gemini calls six tools over the analysis to see what matters, then writes a plain-language recommendation:

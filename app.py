@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind import quality
 from factorymind.agent import recommend
+from factorymind.assumptions import ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS
 from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H
 from factorymind.engine import DEFAULT_QUALITY_HORIZON_H, analyze
 from factorymind.predict import MODEL_DIR
@@ -48,20 +49,50 @@ with st.expander("Expected files"):
         '`manifest.json` like `{"provenance": {"orders": "real"}}`.'
     )
 
+
+
+def assumption_panel() -> dict[str, float]:
+    """Sidebar inputs for the plant assumptions; returns their current values."""
+    with st.sidebar:
+        st.header("Plant assumptions")
+        st.caption("Every money figure and the ranking of actions use these. Change one and the "
+                   "whole analysis re-runs.")
+        if st.button("Reset to defaults"):
+            for key, value in DEFAULT_ASSUMPTIONS.items():
+                st.session_state[f"assume_{key}"] = value
+        values = {}
+        for key, info in ASSUMPTION_INFO.items():
+            default = DEFAULT_ASSUMPTIONS[key]
+            st.session_state.setdefault(f"assume_{key}", default)
+            values[key] = st.number_input(
+                f"{info.label} ({info.unit})", min_value=0.0, max_value=info.max_value,
+                step=info.step, format="%.0f" if info.step >= 1 else "%.2f",
+                key=f"assume_{key}", help=f"{info.help} Default: {default:g}.")
+        changed = {k: v for k, v in values.items() if v != DEFAULT_ASSUMPTIONS[k]}
+        if changed:
+            st.info("Changed from default: " + "; ".join(
+                f"{ASSUMPTION_INFO[k].label.lower()} {v:g} (default {DEFAULT_ASSUMPTIONS[k]:g})"
+                for k, v in changed.items()))
+    return values
+
+
+assumptions = assumption_panel()
+
 if not uploads:
     st.info("Upload a bundle to start.")
     st.stop()
 
 @st.cache_data(show_spinner="Analysing…", max_entries=8)
-def run_analysis(files: tuple[tuple[str, bytes], ...], quality_horizon_hours: int):
-    return analyze(dict(files), quality_horizon_hours=quality_horizon_hours)
+def run_analysis(files: tuple[tuple[str, bytes], ...], quality_horizon_hours: int,
+                 assumptions: tuple[tuple[str, float], ...]):
+    return analyze(dict(files), dict(assumptions), quality_horizon_hours=quality_horizon_hours)
 
 
 # The horizon slider is drawn further down; read its value first so the analysis uses it.
 st.session_state.setdefault("horizon", DEFAULT_QUALITY_HORIZON_H)
 try:
     report = run_analysis(tuple((u.name, u.getvalue()) for u in uploads),
-                          st.session_state["horizon"])
+                          st.session_state["horizon"], tuple(sorted(assumptions.items())))
 except BundleValidationError as exc:
     st.error(f"The bundle has {len(exc.errors)} problem(s). Fix them and upload again.")
     st.dataframe(pd.DataFrame([asdict(e) for e in exc.errors]), hide_index=True, width="stretch")
@@ -72,6 +103,12 @@ if synthetic:
     st.warning("Synthetic inputs: " + ", ".join(f"`{name}`" for name in synthetic))
 
 LEVEL_BADGES = {"high": "🔴 High", "medium": "🟠 Medium", "low": "🟢 Low"}
+
+
+def synthetic_badge(*tables: str) -> str:
+    """A badge for figures built on synthetic inputs."""
+    return (" :orange-badge[synthetic data]"
+            if any(report.data_provenance.get(t) == "synthetic" for t in tables) else "")
 COMPONENTS = ["comp1", "comp2", "comp3", "comp4"]
 
 st.subheader(f"Failure risk in the next 24h ({len(report.machines)} machines)")
@@ -203,12 +240,13 @@ with chain[1].container(border=True):
     st.caption(f"\\${ok.excess_scrap_cost:,.0f} if it keeps running for {CASCADE_HORIZON_H}h; "
                "a repair restores normal quality")
 with chain[2].container(border=True):
-    st.markdown(f"**📦 Inventory ({c.product or 'no product'})**")
+    st.markdown(f"**📦 Inventory ({c.product or 'no product'})**"
+                + synthetic_badge("inventory", "production_schedule"))
     st.metric("Units not made", f"{c.lost_units:,.0f}")
     st.caption(f"If it fails: {breach_text(f.inventory_breach_hours)}. "
                f"If not: {breach_text(ok.inventory_breach_hours)}.")
 with chain[3].container(border=True):
-    st.markdown("**🚚 Orders**")
+    st.markdown("**🚚 Orders**" + synthetic_badge("orders"))
     st.metric("Late if it fails", f"{len(f.late_orders)}")
     st.caption(f"\\${f.penalties:,.0f} penalties if it fails. "
                f"If not: {len(ok.late_orders)} late, \\${ok.penalties:,.0f}.")
@@ -263,7 +301,7 @@ with st.expander("How the cascade is simulated"):
         "them by the failure chance. Excess scrap is scrap above the normal "
         f"{quality.BASE_RATE:.1%} defect rate."
     )
-    st.caption("Costs use the plant assumptions: " + ", ".join(
+    st.caption("Costs use the plant assumptions in the sidebar: " + ", ".join(
         f"{k.replace('_', ' ')} {v:g}" for k, v in report.assumptions_used.items()))
 
 st.markdown("#### What to do about it")
@@ -320,11 +358,12 @@ with st.expander("How each action is simulated"):
 st.markdown("#### 🤖 Gemini's recommendation")
 bundle_key = hashlib.sha256(b"".join(u.getvalue() for u in uploads)).hexdigest()[:16]
 recs = st.session_state.setdefault("recommendations", {})
-rec_key = (bundle_key, machine_id)
+rec_key = (bundle_key, machine_id, tuple(sorted(assumptions.items())))
 if st.button("Ask Gemini what to do", key=f"ask-{machine_id}", type="primary"):
     with st.spinner("Gemini is checking the risk, the cascade and the options…"):
         try:
-            recs[rec_key] = recommend({u.name: u.getvalue() for u in uploads}, machine_id)
+            recs[rec_key] = recommend({u.name: u.getvalue() for u in uploads}, machine_id,
+                                      assumptions)
         except Exception as exc:  # noqa: BLE001 - shown to the operator, not swallowed
             st.error(f"Gemini couldn't answer right now: {exc}")
 rec = recs.get(rec_key)
