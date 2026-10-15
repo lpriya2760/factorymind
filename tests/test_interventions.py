@@ -104,3 +104,14 @@ def test_raising_the_downtime_cost_moves_full_service_up_for_a_failing_machine()
     dear = analyze(files, assumptions={"downtime_cost_per_hour": 10_000})
     assert rank_of(cheap, "maintain_now") > rank_of(cheap, "do_nothing")
     assert rank_of(dear, "maintain_now") < rank_of(dear, "do_nothing")
+
+
+def test_reroute_says_the_target_keeps_its_own_schedule():
+    report = analyze(bundle("two_machines_at_risk"))
+    reroute = by_lever(report.interventions[95])["reroute"]
+    d = reroute.params
+    assert d["target_machine"] == 94 and d["target_keeps_its_own_schedule"] is True
+    assert d["target_units_per_hour_while_covering"] == pytest.approx(
+        d["target_own_units_per_hour"] + d["units_per_hour_moved"], abs=0.11)
+    assert d["units_per_hour_moved"] <= d["spare_capacity_share"] * d["target_own_units_per_hour"] + 0.1
+    assert "keeps its own" in reroute.note and "on top" in reroute.note

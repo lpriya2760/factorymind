@@ -9,7 +9,7 @@ The analysis engine already computes the answer: the risk, the cascade and the r
 
 ## Decision
 
-### An ADK agent with six tools over the analysis
+### An ADK agent with seven tools over the analysis
 
 Built with **Google ADK**. The tools are thin wrappers over the same `AnalysisReport` the UI shows:
 
@@ -21,6 +21,7 @@ Built with **Google ADK**. The tools are thin wrappers over the same `AnalysisRe
 | `get_cascade(machine_id)` | both scenarios: late orders, safety-stock breach, losses, expected loss |
 | `simulate_interventions(machine_id)` | the ranked actions with cost, failure chance after, loss avoided and net benefit |
 | `get_assumptions()` | the plant cost assumptions |
+| `get_production_plan(machine_id)` | the machines making its product and their scheduled rates, stock, safety stock and open orders (added after a chat question it couldn't answer, below) |
 
 - **Numbers in quotable units.** Tools return figures in the form they should be quoted: whole dollars, percentages to one decimal, hours. So Gemini never has to convert anything.
 - **Unknown machines.** An unknown machine returns an error plus the list of machines, rather than a guess.
@@ -65,6 +66,14 @@ There are two fixes:
 A first question that hits an overloaded model now takes about 10s, and later ones go straight to the working model.
 
 Locally, the free AI Studio key also has a **daily quota** (429), which a day of testing can exhaust. The deployed app uses Vertex AI, where this doesn't apply. The app tells the operator "Gemini is busy right now" instead of showing a raw API error.
+
+### When the agent can't answer, give it the data
+
+During testing, an operator asked whether machine 94, covering for machine 95, would be "producing units it was supposed to produce". The agent correctly said it couldn't answer, because no tool exposed the schedule. **The simulation already knew:** the covering machine keeps its own schedule and makes the moved units on top, using spare capacity. Two fixes followed:
+- The reroute option's `details` now state the target's own rate, that it keeps its schedule, its rate while covering, and the units nobody makes.
+- The new `get_production_plan` tool exposes the schedule, stock and orders around a machine.
+
+The cache fingerprint now covers the tools' names, signatures and descriptions, plus a `TOOL_RESULTS_VERSION`, so changing a tool invalidates cached answers.
 
 ## Testing without Gemini
 

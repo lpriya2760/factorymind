@@ -220,13 +220,14 @@ Figures built on synthetic inputs (inventory, production schedule, orders) carry
 
 ## Gemini's recommendation
 
-In the machine view, **Ask Gemini what to do** runs an agent built with Google ADK (`factorymind/agent.py`). Gemini calls six tools over the analysis to see what matters, then writes a plain-language recommendation:
+In the machine view, **Ask Gemini what to do** runs an agent built with Google ADK (`factorymind/agent.py`). Gemini calls seven tools over the analysis to see what matters, then writes a plain-language recommendation:
 - `get_risk_overview`
 - `get_machine_risk`
 - `project_quality`
 - `get_cascade`
 - `simulate_interventions`
 - `get_assumptions`
+- `get_production_plan`: who makes the product, at what rate, stock and open orders
 
 The app shows which tools it called and what they returned.
 

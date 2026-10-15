@@ -143,13 +143,24 @@ def _for_machine(plant, machine, by_id, history, quality, cascade) -> list[Inter
         cover_scrap = cover * (plant.defect[target] - BASE_RATE).clip(min=0) \
             * a["scrap_cost_per_unit"]
         uncovered = (1 - moved / units) if units else 1.0
+        own = plant.units[target]
+        # The target keeps its own schedule and makes the moved units on top, with spare capacity.
         add("reroute", f"Replace {comp}, machine {target} covers",
-            {"component": comp, "target_machine": target, "units_per_hour_moved": round(moved, 1)},
+            {"component": comp, "target_machine": target, "stop_hours": stop,
+             "units_per_hour_moved": round(moved, 1),
+             "target_own_units_per_hour": round(own, 1),
+             "target_keeps_its_own_schedule": True,
+             "target_units_per_hour_while_covering": round(own + moved, 1),
+             "spare_capacity_share": a["spare_capacity_share"],
+             "units_per_hour_not_made": round(units - moved, 1)},
             part + labour * stop + a["reroute_setup_cost"]
             + a["downtime_cost_per_hour"] * stop * uncovered,
             p_new, risks, "model",
-            f"As replacing {comp}, but machine {target} (same model, lowest risk) makes "
-            f"{moved:.0f} of this machine's {units:.0f} units/h during the {stop:g}h stop.",
+            f"As replacing {comp}, but machine {target} (same model, lowest risk) keeps its own "
+            f"{own:.0f} units/h schedule and makes {moved:.0f} of this machine's {units:.0f} "
+            f"units/h on top, using spare capacity (up to "
+            f"{a['spare_capacity_share']:.0%} above its rate), during the {stop:g}h stop. The "
+            f"other {units - moved:.0f} units/h aren't made anywhere and cost downtime.",
             production_with(mine, {target: cover * (1 - plant.defect[target])}),
             excess + cover_scrap)
 

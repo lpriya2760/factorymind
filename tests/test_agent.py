@@ -183,3 +183,20 @@ def test_project_quality_uses_the_requested_horizon(files):
     t = tools(files)
     assert t["project_quality"](90, 24)["horizon_hours"] == 24
     assert t["project_quality"](90, 1000)["horizon_hours"] == 168
+
+
+def test_production_plan_shows_who_makes_the_product_and_its_orders():
+    two = {p.name: p.read_bytes() for p in (DEMO / "two_machines_at_risk").iterdir() if p.is_file()}
+    plan = {t.__name__: t for t in make_tools(AnalysisSession(two))}["get_production_plan"](95)
+    makers = {m["machine_id"]: m for m in plan["machines_making_it"]}
+    assert plan["product"] == "P-200" and {94, 95} <= set(makers)
+    assert makers[94]["scheduled_units_per_hour"] > 0
+    assert plan["on_hand_units"] > plan["safety_stock_units"] >= 0
+    assert plan["open_orders"] and all(o["due_in_hours"] > 0 for o in plan["open_orders"])
+    json.dumps(plan)
+
+
+def test_interventions_tool_includes_reroute_details(files):
+    tool = {t.__name__: t for t in make_tools(AnalysisSession(files))}["simulate_interventions"]
+    reroute = next(o for o in tool(90)["options"] if o["details"].get("target_machine"))
+    assert reroute["details"]["target_keeps_its_own_schedule"] is True
