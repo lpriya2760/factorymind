@@ -249,6 +249,15 @@ The app shows which tools it called and what they returned.
 - **The logs** record `cache hit (no Gemini call)` or `Gemini call to <model> took <n>s` for every request.
 - **Keeping it current:** a test fails if any demo machine lacks a current cached answer. Re-run the script after changing the prompts, the analysis or the demo data.
 
+## Ask FactoryMind: follow-up questions
+
+Below the recommendation, a chat answers follow-up questions about the uploaded machines, with the same agent and tools (`Chat` in `factorymind/agent.py`). Try "Which customers are affected if it fails?" or "What if we wait until the weekend?". Questions are about the machine on screen unless you name another.
+
+- **It remembers the conversation.** Follow-ups like "and how much does that save?" work.
+- **It checks every number.** Each figure must come from a tool result anywhere in the conversation. It gets one rewrite if not, and anything still unverified is flagged.
+- **It says when it can't answer.** For a scenario the tools don't simulate (such as waiting until the weekend), it starts with "I can't answer that from the available data", says what's missing, and gives the closest figures the tools do have.
+- **It starts fresh when the data changes.** A new bundle or changed assumptions start a new conversation.
+
 ## Costs and guardrails
 
 The project runs on Google Cloud free-trial credits:
