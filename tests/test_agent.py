@@ -108,7 +108,7 @@ def test_overloaded_model_falls_back_to_the_next(monkeypatch, files):
         return agent.Recommendation(text="ok", model=model)
 
     monkeypatch.setattr(agent, "_recommend", fake)
-    assert recommend(files, 90).model == "second-model"
+    assert recommend(files, 90, use_cache=False).model == "second-model"
     assert tried == ["first-model", "second-model"]
 
 
@@ -131,6 +131,12 @@ SOURCE = json.dumps({"net_benefit_usd": 18176, "chance_pct": 99.83, "note": "3h 
 ])
 def test_guardrail_accepts_numbers_from_tools_and_ignores_identifiers(answer):
     assert unverified_numbers(answer, [SOURCE]) == []
+
+
+def test_guardrail_accepts_negative_tool_values_quoted_with_a_minus_or_in_words():
+    source = json.dumps({"net_benefit_usd": -8502})
+    for answer in ["Net benefit −$8,502.", "Net benefit -$8,502.", "It loses $8,502."]:
+        assert unverified_numbers(answer, [source]) == []
 
 
 def test_guardrail_flags_numbers_not_in_any_tool_result():

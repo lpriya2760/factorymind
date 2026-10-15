@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 from dataclasses import asdict
 from pathlib import Path
 
@@ -19,6 +20,14 @@ from factorymind.predict import MODEL_DIR
 
 # Local development reads GOOGLE_API_KEY from .env; Cloud Run uses Vertex AI settings instead.
 load_dotenv(Path(__file__).with_name(".env"))
+
+# FactoryMind's own log lines (e.g. cache hit or Gemini call) go to stderr, which Cloud Run keeps.
+_log = logging.getLogger("factorymind")
+_log.setLevel(logging.INFO)
+if not _log.handlers:  # Streamlit re-runs this script on every interaction
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(name)s %(levelname)s %(message)s"))
+    _log.addHandler(_handler)
 
 st.set_page_config(page_title="FactoryMind", page_icon="🏭", layout="wide")
 st.title("FactoryMind")
@@ -378,7 +387,8 @@ else:
                    + ", ".join(rec.unverified_numbers))
     else:
         st.caption(f"✅ Every figure was checked against the tool results"
-                   f"{' after one rewrite' if rec.retried else ''} · {rec.model}")
+                   f"{' after one rewrite' if rec.retried else ''} · {rec.model}"
+                   f"{' · ⚡ cached answer, no new Gemini call' if rec.cached else ''}")
     with st.expander(f"Tools Gemini used ({len(rec.tool_calls)})"):
         for call in rec.tool_calls:
             args = ", ".join(f"{k}={v}" for k, v in call.args.items())

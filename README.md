@@ -243,6 +243,26 @@ The app shows which tools it called and what they returned.
 
 **Design:** see [ADR 0004](docs/adr/0004-gemini-agent.md).
 
+**Cached answers.** Each answer is cached by the bundle's *contents* (a zip and its loose files match), the machine, the full set of assumptions, and a fingerprint of the prompts.
+- **The demo bundles never wait on Gemini.** `scripts/cache_recommendations.py` generates verified answers for every machine in them, plus the $300/h downtime scenario for machine 90. They ship with the app as `factorymind/recommendation_cache.json`, so they're instant even right after Cloud Run scales from zero.
+- **Other answers** are cached in memory after their first call. Answers that fail the guardrail are never cached.
+- **The logs** record `cache hit (no Gemini call)` or `Gemini call to <model> took <n>s` for every request.
+- **Keeping it current:** a test fails if any demo machine lacks a current cached answer. Re-run the script after changing the prompts, the analysis or the demo data.
+
+## Costs and guardrails
+
+The project runs on Google Cloud free-trial credits:
+
+| Guardrail | Why |
+|---|---|
+| Cloud Run: `min-instances=0`, `max-instances=2`, 1 vCPU / 1 GiB | Costs nothing when idle, and is capped under load |
+| The failure model runs **inside the app** | No Vertex AI prediction endpoint, which would bill by the hour even when idle |
+| No Agent Engine, AutoML, Cloud SQL or GKE | Checked: none exist in the project |
+| Gemini Flash, with cached answers for the demo bundles | Each live answer costs a fraction of a cent; the demo costs nothing |
+| A budget alert on the billing account | Emails you before credits run out (it alerts, it doesn't cap spending) |
+
+**Before recording or presenting,** run the [smoke test](docs/smoke-test.md) on the deployed URL.
+
 ## Deploy to Cloud Run
 
 Requirements:

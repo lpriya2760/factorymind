@@ -7,6 +7,7 @@ optional manifest.json declaring which tables are real and which are synthetic.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import zipfile
@@ -82,10 +83,11 @@ class Bundle:
     provenance: dict[str, str]  # table name -> "real" | "synthetic"
 
 
-def load_bundle(files: Mapping[str, bytes]) -> Bundle:
-    """Parse and validate uploaded files (name -> contents).
+def canonical_files(files: Mapping[str, bytes]) -> dict[str, bytes]:
+    """The uploaded files as table name (or MANIFEST) -> contents, with zips expanded.
 
-    Raises BundleValidationError listing every problem found, so the user can fix them all at once.
+    The same bundle gives the same result whether it was uploaded as a zip or as loose files.
+    Raises BundleValidationError for oversized uploads, bad zips and unrecognised files.
     """
     upload_bytes = sum(len(b) for b in files.values())
     if upload_bytes > MAX_BUNDLE_BYTES:
@@ -99,6 +101,24 @@ def load_bundle(files: Mapping[str, bytes]) -> Bundle:
     named = _name_files(_expand_zips(files, errors), errors)
     if errors:
         raise BundleValidationError(errors)
+    return named
+
+
+def bundle_fingerprint(files: Mapping[str, bytes]) -> str:
+    """A hash of the bundle's contents, the same for a zip and its loose files."""
+    digest = hashlib.sha256()
+    for name, data in sorted(canonical_files(files).items()):
+        digest.update(name.encode() + b"\0" + hashlib.sha256(data).digest())
+    return digest.hexdigest()
+
+
+def load_bundle(files: Mapping[str, bytes]) -> Bundle:
+    """Parse and validate uploaded files (name -> contents).
+
+    Raises BundleValidationError listing every problem found, so the user can fix them all at once.
+    """
+    named = canonical_files(files)
+    errors: list[FieldError] = []
 
     for name in TABLES:
         if name not in named:
