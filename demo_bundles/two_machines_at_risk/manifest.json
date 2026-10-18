@@ -11,20 +11,21 @@
   "scenario": {
     "name": "two_machines_at_risk",
     "description": "Machine 92 (comp3) and machine 95 (comp4) both fail within 24h of the data ending. Shows prioritising between two risks.",
-    "window_start": "2015-07-19 00:00:00",
-    "as_of": "2015-08-18 00:00:00",
+    "window_start": "2026-09-18 00:00:00",
+    "as_of": "2026-10-18 00:00:00",
     "upcoming_failures": [
       {
         "machineID": 92,
         "comp": "comp3",
-        "datetime": "2015-08-18 06:00:00"
+        "datetime": "2026-10-18 06:00:00"
       },
       {
         "machineID": 95,
         "comp": "comp4",
-        "datetime": "2015-08-18 06:00:00"
+        "datetime": "2026-10-18 06:00:00"
       }
     ]
   },
+  "original_as_of": "2015-08-18 00:00:00",
   "generated_by": "scripts/make_demo_bundles.py --seed 7"
 }

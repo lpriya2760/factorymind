@@ -10,7 +10,7 @@ from factorymind.alerts import format_slack_event, slack_notifier
 from factorymind.stream import AlertLedger, RiskMonitor, replay
 
 DEMOS = Path(__file__).parent.parent / "demo_bundles"
-T0 = datetime(2015, 5, 19, 6)
+T0 = datetime(2026, 10, 18, 6)
 
 
 def bundle(name):
@@ -52,8 +52,8 @@ def test_streaming_comp2_raises_exactly_one_alert_a_day_ahead(comp2_stream):
     assert len(events) == 1 and len(sent) == 1
     e = events[0]
     assert (e.machine_id, e.component, e.risk_level) == (90, "comp2", "high")
-    # The real failure is at 2015-05-20 06:00: the alert comes 24h earlier, from streamed data.
-    assert e.at == datetime(2015, 5, 19, 6)
+    # The real failure is at 2026-10-19 06:00: the alert comes 24h earlier, from streamed data.
+    assert e.at == datetime(2026, 10, 18, 6)
     assert e.failure_probability > 0.99 and e.drivers and e.expected_loss > 0
     assert e.best_action == "Replace comp2, machine 47 covers" and e.net_benefit > 0
     assert e.delivery_error is None
