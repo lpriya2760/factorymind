@@ -3,10 +3,12 @@
 import hashlib
 import json
 import logging
+import os
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import google.auth
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
@@ -22,6 +24,7 @@ from factorymind.assumptions import ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS
 from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H, MC_SAMPLES, PREDICTION_WINDOW_H
 from factorymind.engine import DEFAULT_QUALITY_HORIZON_H, analyze
 from factorymind.predict import HIGH_RISK, MODEL_DIR
+from factorymind.pubsub import LiveStream, PubSubBus
 from factorymind.replay import DEFAULT_REPLAY_H, files_until, risk_timeline
 from factorymind.stream import AlertLedger
 from factorymind import ui
@@ -107,12 +110,77 @@ if demos:
                 "data from the Azure Predictive Maintenance dataset, with synthetic orders.")
     for col, (name, path) in zip(st.columns(len(demos)), demos.items()):
         if col.button(DEMOS[name], key=f"demo-{name}", width="stretch"):
-            st.session_state["demo"] = name
+            st.session_state.update(demo=name, source="demo")
         col.download_button("⬇ Download .zip", path.read_bytes(), file_name=path.name,
                             key=f"download-{name}", width="stretch")
 
+# Live stream: a demo bundle's last hours published to Google Cloud Pub/Sub, one hour every
+# LIVE_SECONDS_PER_HOUR, received back by this session and analysed as each hour arrives.
+LIVE_SECONDS_PER_HOUR = 2.0
+
+
+@st.cache_resource
+def pubsub_bus():
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT") or google.auth.default()[1]
+    if not project:
+        raise RuntimeError("no Google Cloud project: set GOOGLE_CLOUD_PROJECT")
+    return PubSubBus(project)
+
+
+live = st.session_state.get("live")
+if demos:
+    st.markdown(f"**Or stream it live over Pub/Sub**: publish a demo bundle's last hours to "
+                f"Google Cloud Pub/Sub, one hour every {LIVE_SECONDS_PER_HOUR:g} seconds, and "
+                "watch the prediction change as each hour arrives.")
+    live_cols = st.columns([2, 1, 1, 1], vertical_alignment="bottom")
+    live_demo = live_cols[0].selectbox("Bundle to stream", list(demos), format_func=DEMOS.get,
+                                       key="live_demo")
+    live_hours = live_cols[1].number_input("Hours to stream", min_value=6, max_value=72,
+                                           value=36, step=6, key="live_hours")
+    if live_cols[2].button("📡 Start live stream", key="live-start", type="primary",
+                           width="stretch"):
+        if live is not None:
+            live.stop()
+        try:
+            with st.spinner("Creating this session's Pub/Sub subscription…"):
+                live = LiveStream({demos[live_demo].name: demos[live_demo].read_bytes()},
+                                  pubsub_bus(), int(live_hours), LIVE_SECONDS_PER_HOUR).start()
+            st.session_state.update(live=live, source="live", live_label=DEMOS[live_demo])
+            _log.info("live stream %s started: %s, %sh", live.run_id, live_demo, live_hours)
+        except Exception as exc:  # noqa: BLE001 - no credentials, no permission, no topic...
+            _log.warning("live stream failed to start: %s", exc)
+            st.error(f"Couldn't start the Pub/Sub stream: {exc}")
+    if (live is not None and not live.done
+            and live_cols[3].button("⏹ Stop stream", key="live-stop", width="stretch")):
+        live.stop()
+
+live_mode = live is not None and st.session_state.get("source") == "live" and not uploads
+if not live_mode and live is not None and not live.done:
+    live.stop()  # switched to an upload or a demo bundle
+
 if uploads:
     files = {u.name: u.getvalue() for u in uploads}
+elif live_mode:
+    # Remember what this page shows, so the status below knows when a new hour has arrived.
+    st.session_state["live_seen"] = (live.hours_received, live.done)
+    files = live.bundle()
+
+    @st.fragment(run_every=1.0 if not live.done else None)
+    def live_status():
+        if (live.hours_received, live.done) != st.session_state["live_seen"]:
+            st.rerun(scope="app")  # a new hour: re-run the whole analysis on the data so far
+        shown = st.session_state["live_seen"][0]
+        state = ("⏹ stopped" if live.done and shown < len(live.hours)
+                 else "✅ finished" if live.done else "🔴 LIVE")
+        st.progress(shown / len(live.hours), text=(
+            f"{state} · **{st.session_state['live_label']}** over Pub/Sub · hour {shown} of "
+            f"{len(live.hours)} · data up to **{live.as_of:%Y-%m-%d %H:%M}** · "
+            f"{live.published:,} messages published, {live.received:,} received · "
+            f"run `{live.run_id}`"))
+        if live.error:
+            st.error(f"The stream stopped: {live.error}")
+
+    live_status()
 elif st.session_state.get("demo") in demos:
     demo = st.session_state["demo"]
     files = {demos[demo].name: demos[demo].read_bytes()}
@@ -197,6 +265,8 @@ with st.expander("About the failure model"):
     )
 
 bundle_key = hashlib.sha256(b"".join(files.values())).hexdigest()[:16]
+# Alerts are once per risk episode: a live stream's data changes every hour, but it is one plant.
+alert_scope = f"live-{live.run_id}" if live_mode else bundle_key
 
 
 def gemini_unavailable(exc: Exception) -> None:
@@ -239,134 +309,143 @@ def analysis_until(files: tuple[tuple[str, bytes], ...], at: pd.Timestamp,
 
 REPLAY_SPEEDS = {"1× (1 hour/s)": 1, "2×": 2, "4×": 4, "8×": 8}
 
-ui.section("clock", "Replay the data as if it were live",
-           "Step through the last hours of telemetry and watch the risk change. When the chosen "
-           "machine crosses the threshold, the recommendation appears.")
-with st.container(border=True):
-    settings = st.columns([1, 1, 1, 1])
-    replay_hours = settings[0].number_input("Hours to replay", min_value=6, max_value=168,
-                                            value=DEFAULT_REPLAY_H, step=6, key="replay_hours")
-    timeline = replay_timeline(tuple(files.items()), int(replay_hours))
-    # Default to the machine that ends riskiest: the one with a story to tell.
-    end_order = [m.machine_id for m in timeline.machines_at(len(timeline) - 1)]
-    replay_machine = settings[1].selectbox("Machine to watch", end_order, key="replay_machine",
-                                           format_func=lambda i: f"Machine {i}")
-    threshold = settings[2].slider("Threshold (failure chance)", 0.05, 0.95, HIGH_RISK, 0.05,
-                                   key="replay_threshold",
-                                   help="The recommendation appears once any component of the "
-                                        "watched machine reaches this chance of failing in 24h.")
-    speed = REPLAY_SPEEDS[settings[3].selectbox("Speed", list(REPLAY_SPEEDS), key="replay_speed")]
-    pause_on_cross = st.checkbox("Pause when the threshold is crossed", value=True,
-                                 key="replay_pause_on_cross")
 
-    # Start again whenever what is being replayed changes.
-    replay_key = (bundle_key, int(replay_hours), replay_machine, threshold)
-    if st.session_state.get("replay_key") != replay_key:
-        st.session_state.update(replay_key=replay_key, replay_step=0, replay_playing=False)
-    crossing = timeline.first_crossing(replay_machine, threshold)
+def replay_section():
+    ui.section("clock", "Replay the data as if it were live",
+               "Step through the last hours of telemetry and watch the risk change. When the chosen "
+               "machine crosses the threshold, the recommendation appears.")
+    with st.container(border=True):
+        settings = st.columns([1, 1, 1, 1])
+        replay_hours = settings[0].number_input("Hours to replay", min_value=6, max_value=168,
+                                                value=DEFAULT_REPLAY_H, step=6, key="replay_hours")
+        timeline = replay_timeline(tuple(files.items()), int(replay_hours))
+        # Default to the machine that ends riskiest: the one with a story to tell.
+        end_order = [m.machine_id for m in timeline.machines_at(len(timeline) - 1)]
+        replay_machine = settings[1].selectbox("Machine to watch", end_order, key="replay_machine",
+                                               format_func=lambda i: f"Machine {i}")
+        threshold = settings[2].slider("Threshold (failure chance)", 0.05, 0.95, HIGH_RISK, 0.05,
+                                       key="replay_threshold",
+                                       help="The recommendation appears once any component of the "
+                                            "watched machine reaches this chance of failing in 24h.")
+        speed = REPLAY_SPEEDS[settings[3].selectbox("Speed", list(REPLAY_SPEEDS), key="replay_speed")]
+        pause_on_cross = st.checkbox("Pause when the threshold is crossed", value=True,
+                                     key="replay_pause_on_cross")
 
-    controls = st.columns([1, 1, 1, 3])
-    playing = st.session_state["replay_playing"]
-    at_end = st.session_state["replay_step"] >= len(timeline) - 1
-    if controls[0].button("⏸ Pause" if playing else "▶ Play", key="replay_play",
-                          type="primary", width="stretch"):
-        if at_end:
-            st.session_state["replay_step"] = 0
-        st.session_state["replay_playing"] = not playing
-        st.rerun()
-    if controls[1].button("⏭ Step", key="replay_next", width="stretch", disabled=playing or at_end):
-        st.session_state["replay_step"] += 1
-    if controls[2].button("⏮ Reset", key="replay_reset", width="stretch"):
-        st.session_state.update(replay_step=0, replay_playing=False)
-        st.rerun()
+        # Start again whenever what is being replayed changes.
+        replay_key = (bundle_key, int(replay_hours), replay_machine, threshold)
+        if st.session_state.get("replay_key") != replay_key:
+            st.session_state.update(replay_key=replay_key, replay_step=0, replay_playing=False)
+        crossing = timeline.first_crossing(replay_machine, threshold)
 
-    @st.fragment(run_every=1 / speed if st.session_state["replay_playing"] else None)
-    def replay_view():
-        step = st.session_state["replay_step"]
-        if st.session_state["replay_playing"]:
-            # Each timer tick (except the first, right after Play) advances one hour.
-            advanced = st.session_state.pop("replay_ticked", False)
-            if advanced:
-                step = min(step + 1, len(timeline) - 1)
-                st.session_state["replay_step"] = step
-            st.session_state["replay_ticked"] = True
-            stop = step >= len(timeline) - 1 or (
-                advanced and pause_on_cross and crossing is not None and step == crossing.step)
-            if stop:
-                st.session_state.update(replay_playing=False, replay_ticked=False)
-                st.rerun(scope="app")  # stops the timer
-        else:
-            st.session_state["replay_ticked"] = False
+        controls = st.columns([1, 1, 1, 3])
+        playing = st.session_state["replay_playing"]
+        at_end = st.session_state["replay_step"] >= len(timeline) - 1
+        if controls[0].button("⏸ Pause" if playing else "▶ Play", key="replay_play",
+                              type="primary", width="stretch"):
+            if at_end:
+                st.session_state["replay_step"] = 0
+            st.session_state["replay_playing"] = not playing
+            st.rerun()
+        if controls[1].button("⏭ Step", key="replay_next", width="stretch", disabled=playing or at_end):
+            st.session_state["replay_step"] += 1
+        if controls[2].button("⏮ Reset", key="replay_reset", width="stretch"):
+            st.session_state.update(replay_step=0, replay_playing=False)
+            st.rerun()
 
-        at = timeline.hours[step]
-        st.progress((step + 1) / len(timeline),
-                    text=f"Hour {step + 1} of {len(timeline)} · data up to **{at:%Y-%m-%d %H:%M}**")
-        machines = timeline.machines_at(step)
-        watched = next(m for m in machines if m.machine_id == replay_machine)
+        @st.fragment(run_every=1 / speed if st.session_state["replay_playing"] else None)
+        def replay_view():
+            step = st.session_state["replay_step"]
+            if st.session_state["replay_playing"]:
+                # Each timer tick (except the first, right after Play) advances one hour.
+                advanced = st.session_state.pop("replay_ticked", False)
+                if advanced:
+                    step = min(step + 1, len(timeline) - 1)
+                    st.session_state["replay_step"] = step
+                st.session_state["replay_ticked"] = True
+                stop = step >= len(timeline) - 1 or (
+                    advanced and pause_on_cross and crossing is not None and step == crossing.step)
+                if stop:
+                    st.session_state.update(replay_playing=False, replay_ticked=False)
+                    st.rerun(scope="app")  # stops the timer
+            else:
+                st.session_state["replay_ticked"] = False
 
-        left, right = st.columns([3, 2])
-        with left:
-            st.markdown(f"**Machine {replay_machine}: chance of each component failing in the "
-                        "next 24h**")
-            history = timeline.history(replay_machine, step) * 100
-            history["threshold"] = threshold * 100
-            st.line_chart(history, y_label="Failure chance (%)", x_label="Data time",
-                          height=260)
-            now = st.columns(4)
-            for col, c in zip(now, COMPONENTS):
-                col.metric(c, f"{watched.component_risk[c]:.1%}")
-        with right:
-            st.markdown("**Fleet at this hour**")
-            st.dataframe(
-                pd.DataFrame([{"Risk": LEVEL_BADGES[m.risk_level], "Machine": m.machine_id,
-                               "Riskiest part": m.top_component if m.risk_level != "low" else "—",
-                               "Chance": m.max_risk * 100} for m in machines]),
-                hide_index=True, width="stretch", height=300,
-                column_config={"Chance": st.column_config.ProgressColumn(
-                    "Chance", min_value=0, max_value=100, format="%.1f%%")})
+            at = timeline.hours[step]
+            st.progress((step + 1) / len(timeline),
+                        text=f"Hour {step + 1} of {len(timeline)} · data up to **{at:%Y-%m-%d %H:%M}**")
+            machines = timeline.machines_at(step)
+            watched = next(m for m in machines if m.machine_id == replay_machine)
 
-        if crossing is None:
-            st.caption(f"Machine {replay_machine} stays below {threshold:.0%} for the whole "
-                       "replay, so no recommendation is triggered.")
-            return
-        if step < crossing.step:
-            st.caption(f"Recommendation appears when machine {replay_machine} reaches "
-                       f"{threshold:.0%}.")
-            return
+            left, right = st.columns([3, 2])
+            with left:
+                st.markdown(f"**Machine {replay_machine}: chance of each component failing in the "
+                            "next 24h**")
+                history = timeline.history(replay_machine, step) * 100
+                history["threshold"] = threshold * 100
+                st.line_chart(history, y_label="Failure chance (%)", x_label="Data time",
+                              height=260)
+                now = st.columns(4)
+                for col, c in zip(now, COMPONENTS):
+                    col.metric(c, f"{watched.component_risk[c]:.1%}")
+            with right:
+                st.markdown("**Fleet at this hour**")
+                st.dataframe(
+                    pd.DataFrame([{"Risk": LEVEL_BADGES[m.risk_level], "Machine": m.machine_id,
+                                   "Riskiest part": m.top_component if m.risk_level != "low" else "—",
+                                   "Chance": m.max_risk * 100} for m in machines]),
+                    hide_index=True, width="stretch", height=300,
+                    column_config={"Chance": st.column_config.ProgressColumn(
+                        "Chance", min_value=0, max_value=100, format="%.1f%%")})
 
-        st.error(f"🚨 **Threshold crossed at {crossing.at:%Y-%m-%d %H:%M}**: machine "
-                 f"{replay_machine} {crossing.component} is "
-                 f"{'>99%' if crossing.probability > 0.99 else f'{crossing.probability:.0%}'} "
-                 "likely to fail in the next 24h."
-                 + (f" Why: {' · '.join(d.description for d in watched.top_drivers)}."
-                    if step == crossing.step and watched.top_drivers else ""))
-        frozen = tuple(files.items())
-        then = analysis_until(frozen, crossing.at, tuple(sorted(assumptions.items())))
-        best_then = then.interventions[replay_machine][0]
-        if best_then.lever == "do_nothing":
-            st.info("**Best action then: do nothing.** No action pays for itself.")
-        else:
-            st.success(f"**Best action then: {best_then.label}.** Costs "
-                       f"\\${best_then.cost:,.0f} and avoids \\${best_then.loss_avoided:,.0f} "
-                       f"of expected loss: a net benefit of **\\${best_then.net_benefit:,.0f}**.")
-        replay_recs = st.session_state.setdefault("replay_recs", {})
-        rec_key = (bundle_key, replay_machine, crossing.at, tuple(sorted(assumptions.items())))
-        if rec_key not in replay_recs:
-            with st.spinner("Gemini is reading the plant as it was at the crossing…"):
-                try:
-                    replay_recs[rec_key] = recommend(files_until(files, crossing.at),
-                                                     replay_machine, assumptions)
-                except Exception as exc:  # noqa: BLE001 - shown to the operator, not swallowed
-                    gemini_unavailable(exc)
-                    replay_recs[rec_key] = None
-        if replay_recs[rec_key] is not None:
-            st.markdown("**Gemini's recommendation at the crossing**")
-            show_recommendation(replay_recs[rec_key])
-        elif st.button("Ask Gemini again", key="replay_retry"):
-            replay_recs.pop(rec_key)
-            st.rerun(scope="fragment")
+            if crossing is None:
+                st.caption(f"Machine {replay_machine} stays below {threshold:.0%} for the whole "
+                           "replay, so no recommendation is triggered.")
+                return
+            if step < crossing.step:
+                st.caption(f"Recommendation appears when machine {replay_machine} reaches "
+                           f"{threshold:.0%}.")
+                return
 
-    replay_view()
+            st.error(f"🚨 **Threshold crossed at {crossing.at:%Y-%m-%d %H:%M}**: machine "
+                     f"{replay_machine} {crossing.component} is "
+                     f"{'>99%' if crossing.probability > 0.99 else f'{crossing.probability:.0%}'} "
+                     "likely to fail in the next 24h."
+                     + (f" Why: {' · '.join(d.description for d in watched.top_drivers)}."
+                        if step == crossing.step and watched.top_drivers else ""))
+            frozen = tuple(files.items())
+            then = analysis_until(frozen, crossing.at, tuple(sorted(assumptions.items())))
+            best_then = then.interventions[replay_machine][0]
+            if best_then.lever == "do_nothing":
+                st.info("**Best action then: do nothing.** No action pays for itself.")
+            else:
+                st.success(f"**Best action then: {best_then.label}.** Costs "
+                           f"\\${best_then.cost:,.0f} and avoids \\${best_then.loss_avoided:,.0f} "
+                           f"of expected loss: a net benefit of **\\${best_then.net_benefit:,.0f}**.")
+            replay_recs = st.session_state.setdefault("replay_recs", {})
+            rec_key = (bundle_key, replay_machine, crossing.at, tuple(sorted(assumptions.items())))
+            if rec_key not in replay_recs:
+                with st.spinner("Gemini is reading the plant as it was at the crossing…"):
+                    try:
+                        replay_recs[rec_key] = recommend(files_until(files, crossing.at),
+                                                         replay_machine, assumptions)
+                    except Exception as exc:  # noqa: BLE001 - shown to the operator, not swallowed
+                        gemini_unavailable(exc)
+                        replay_recs[rec_key] = None
+            if replay_recs[rec_key] is not None:
+                st.markdown("**Gemini's recommendation at the crossing**")
+                show_recommendation(replay_recs[rec_key])
+            elif st.button("Ask Gemini again", key="replay_retry"):
+                replay_recs.pop(rec_key)
+                st.rerun(scope="fragment")
+
+        replay_view()
+
+
+if live_mode:
+    st.caption("Replay is off while the live stream runs: the stream already shows each hour "
+               "as it arrives.")
+else:
+    replay_section()
 
 # Alert times are shown in India Standard Time (Cloud Run's clock is UTC).
 IST = timezone(timedelta(hours=5, minutes=30), "IST")
@@ -399,7 +478,7 @@ if alert_config is not None:
                        "(see the README's Slack setup).")
         else:
             ledger, failures = slack_alert_state()
-            keys = {m.machine_id: (bundle_key, m.machine_id, m.top_component)
+            keys = {m.machine_id: (alert_scope, m.machine_id, m.top_component)
                     for m in alert.machines}
             due = [m for m in alert.machines if ledger.should_alert(keys[m.machine_id],
                                                                        datetime.now(IST))

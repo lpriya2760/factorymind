@@ -51,5 +51,5 @@ if [[ "${WITH_BIGQUERY:-0}" == "1" ]]; then
 fi
 
 echo "Done. Next, in two terminals:"
-echo "  uv run --group stream python scripts/monitor.py"
-echo "  uv run --group stream python scripts/replay_publisher.py"
+echo "  uv run python scripts/monitor.py"
+echo "  uv run python scripts/replay_publisher.py"

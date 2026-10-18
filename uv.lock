@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -409,6 +409,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "google-adk" },
+    { name = "google-cloud-pubsub" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "python-dotenv" },
@@ -421,13 +422,11 @@ dependencies = [
 dev = [
     { name = "pytest" },
 ]
-stream = [
-    { name = "google-cloud-pubsub" },
-]
 
 [package.metadata]
 requires-dist = [
     { name = "google-adk", specifier = ">=2.11.0" },
+    { name = "google-cloud-pubsub", specifier = ">=2.25" },
     { name = "numpy", specifier = ">=2.5.3" },
     { name = "pandas", specifier = ">=3.0.6" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
@@ -438,7 +437,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1.1" }]
-stream = [{ name = "google-cloud-pubsub", specifier = ">=2.25" }]
 
 [[package]]
 name = "fastapi"

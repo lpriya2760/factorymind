@@ -5,8 +5,8 @@ time every machine has reported for the next hour, and publishes a JSON alert to
 factorymind-alerts topic the first time a machine reaches the alert level. With --notify it
 also sends the alert to the Slack/email channels configured for the app (see the README).
 
-    uv run --group stream python scripts/monitor.py            # then, in another terminal:
-    uv run --group stream python scripts/replay_publisher.py
+    uv run python scripts/monitor.py            # then, in another terminal:
+    uv run python scripts/replay_publisher.py
 """
 
 import argparse

@@ -359,6 +359,13 @@ replay_publisher ──► factorymind-telemetry ──► monitor ──► fac
 
 On the `comp2_failure_building` demo, all machines stay green until **19 May 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99% and one alert fires: $22,623 expected loss, "Replace comp2, machine 47 covers".
 
+**Try it in the app:** under the demo bundles, pick a bundle and click **📡 Start live stream**. The app publishes the bundle's last hours (36 by default) to `factorymind-telemetry`, one hour every 2 seconds. It reads them back through a subscription of its own, then re-runs the prediction, cascade and actions on the data received so far as each hour arrives. On the comp2 bundle, machine 90 turns 🔴 at hour 30, and the Slack alert goes out on its own.
+
+- **Per-session subscriptions:** each stream tags its messages with a `run_id` and reads them through a filtered subscription (`factorymind-live-<run_id>`). Several visitors, or the command-line monitor, can stream at once without taking each other's messages.
+- **Cleanup:** the subscription is deleted when the stream ends. If the app dies first, the subscription expires by itself after a day.
+- **Permissions on Cloud Run:** the runtime service account needs `roles/pubsub.editor` on the project, to create and delete these subscriptions.
+- **Replay is hidden while a stream runs,** because the stream already shows each hour as it arrives.
+
 **Try it offline** (no Google Cloud needed, same pipeline in memory):
 
 ```bash
@@ -370,13 +377,13 @@ uv run python scripts/stream_demo.py --seconds-per-hour 0.5
 ```bash
 gcloud auth application-default login          # once
 ./scripts/pubsub_setup.sh                      # once: topics + subscriptions (WITH_BIGQUERY=1 adds an alerts table)
-uv run --group stream python scripts/monitor.py                               # terminal 1
-uv run --group stream python scripts/replay_publisher.py                     # terminal 2
-gcloud pubsub subscriptions pull factorymind-alerts-tail --auto-ack           # see the alert
+uv run python scripts/monitor.py                                     # terminal 1
+uv run python scripts/replay_publisher.py                            # terminal 2
+gcloud pubsub subscriptions pull factorymind-alerts-tail --auto-ack  # see the alert
 ```
 
 - Add `--notify` to the monitor to also send the alert to the Slack/email channels above.
-- The web app on Cloud Run is unchanged. The Pub/Sub client is an optional `stream` dependency group.
+- The Pub/Sub client (`google-cloud-pubsub`) is a regular dependency, because the web app streams too.
 - Pub/Sub's free tier covers this many times over.
 
 For a real plant, sensors would reach the same topic through an edge gateway (OPC UA or MQTT), and nothing after the topic changes. See [ADR 0006](docs/adr/0006-live-monitoring-over-pubsub.md).

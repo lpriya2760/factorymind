@@ -23,7 +23,9 @@ from __future__ import annotations
 
 import io
 import json
+import threading
 import time
+import uuid
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from typing import Callable, Iterable, Mapping
@@ -31,7 +33,7 @@ from typing import Callable, Iterable, Mapping
 import pandas as pd
 
 from factorymind.alerts import LEVELS, Alert, build_alert, subject
-from factorymind.bundle import load_bundle
+from factorymind.bundle import MANIFEST, canonical_files, load_bundle
 from factorymind.engine import analyze
 from factorymind.report import AnalysisReport
 
@@ -134,7 +136,8 @@ class LiveMonitor:
 
     def __init__(self, history: Mapping[str, bytes], min_level: str = "high",
                  assumptions: Mapping[str, float] | None = None,
-                 on_status: Callable[[HourStatus, AnalysisReport], None] | None = None):
+                 on_status: Callable[[HourStatus, AnalysisReport], None] | None = None,
+                 analyse: bool = True):
         if min_level not in LEVELS:
             raise ValueError(f"min_level must be one of {sorted(LEVELS)}")
         tables = load_bundle(history).tables
@@ -145,6 +148,7 @@ class LiveMonitor:
         self.min_level = min_level
         self.assumptions = assumptions
         self.on_status = on_status
+        self.analyse = analyse  # False: only collect the readings; bundle() has the data so far
         self.last_hour = tables["telemetry"]["datetime"].max()
         self._pending: dict[pd.Timestamp, dict[str, list[dict]]] = defaultdict(
             lambda: {name: [] for name in STREAMED})
@@ -185,7 +189,8 @@ class LiveMonitor:
                     self.data[name] = pd.concat([self.data[name], pd.DataFrame(batch[name])],
                                                 ignore_index=True)
             self.last_hour = hour
-            out.append(self._evaluate(hour))
+            if self.analyse:
+                out.append(self._evaluate(hour))
         return out
 
     def bundle(self) -> dict[str, bytes]:
@@ -221,13 +226,23 @@ class LocalBus:
         self.messages: dict[str, list[tuple[bytes, dict]]] = defaultdict(list)
         self._subscribers: dict[str, list[Callable[[bytes, dict], None]]] = defaultdict(list)
 
-    def publish(self, topic: str, data: bytes, attributes: Mapping[str, str] | None = None):
+    def publish(self, topic: str, data: bytes, attributes: Mapping[str, str] | None = None,
+                wait: bool = True):
         self.messages[topic].append((data, dict(attributes or {})))
         for callback in self._subscribers[topic]:
             callback(data, dict(attributes or {}))
 
     def subscribe(self, topic: str, callback: Callable[[bytes, dict], None]) -> None:
         self._subscribers[topic].append(callback)
+
+    def open_subscription(self, topic: str, run_id: str,
+                          callback: Callable[[bytes, dict], None]) -> Callable[[], None]:
+        """Deliver only this run's messages to `callback`; returns a function that closes it."""
+        def receive(data, attributes):
+            if attributes.get("run_id") == run_id:
+                callback(data, attributes)
+        self._subscribers[topic].append(receive)
+        return lambda: self._subscribers[topic].remove(receive)
 
 
 class PubSubBus:
@@ -243,10 +258,49 @@ class PubSubBus:
     def topic_path(self, topic: str) -> str:
         return self._publisher.topic_path(self.project, topic)
 
-    def publish(self, topic: str, data: bytes, attributes: Mapping[str, str] | None = None):
-        """Publish and wait until Pub/Sub has stored the message; returns its ID."""
-        return self._publisher.publish(self.topic_path(topic), data,
-                                       **dict(attributes or {})).result(timeout=60)
+    def publish(self, topic: str, data: bytes, attributes: Mapping[str, str] | None = None,
+                wait: bool = True):
+        """Publish; with `wait`, wait until Pub/Sub has stored the message and return its ID,
+        otherwise return the future (messages are then sent in batches)."""
+        future = self._publisher.publish(self.topic_path(topic), data, **dict(attributes or {}))
+        return future.result(timeout=60) if wait else future
+
+    def open_subscription(self, topic: str, run_id: str,
+                          callback: Callable[[bytes, dict], None]) -> Callable[[], None]:
+        """Create a subscription that only receives this run's messages (a Pub/Sub filter on
+        the run_id attribute) and stream them to `callback` in the background, one at a time.
+        Returns a function that stops it and deletes the subscription. If the app dies first,
+        the subscription expires by itself after a day without use."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        from google.cloud.pubsub_v1.subscriber.scheduler import ThreadScheduler
+
+        path = self._subscriber.subscription_path(self.project, f"factorymind-live-{run_id}")
+        self._subscriber.create_subscription(request={
+            "name": path, "topic": self.topic_path(topic),
+            "filter": f'attributes.run_id = "{run_id}"',
+            "expiration_policy": {"ttl": {"seconds": 24 * 3600}},
+            "message_retention_duration": {"seconds": 3600},
+        })
+
+        def handle(message):
+            callback(message.data, dict(message.attributes))
+            message.ack()
+
+        future = self._subscriber.subscribe(
+            path, handle, scheduler=ThreadScheduler(executor=ThreadPoolExecutor(max_workers=1)))
+
+        def close():
+            future.cancel()
+            try:
+                future.result(timeout=10)
+            except BaseException:  # noqa: BLE001 - cancelled is the expected outcome
+                pass
+            try:
+                self._subscriber.delete_subscription(request={"subscription": path})
+            except Exception:  # noqa: BLE001 - it expires by itself anyway
+                pass
+        return close
 
     def subscribe(self, subscription: str, callback: Callable[[bytes, dict], None],
                   timeout: float | None = None) -> None:
@@ -275,3 +329,106 @@ class PubSubBus:
             except BaseException:
                 future.cancel()
                 raise
+
+
+# --- a live run inside the app ----------------------------------------------------------------
+
+class LiveStream:
+    """Streams a bundle through Pub/Sub for the web app: publishes its last `replay_hours` of
+    readings to the telemetry topic, one simulated hour every `seconds_per_hour`, and receives
+    them back through a subscription of its own, so the app can re-run the analysis on the data
+    received so far (`bundle()`) as each hour arrives.
+
+    Each run tags its messages with a run_id and reads them through a filtered subscription, so
+    several visitors (or the command-line monitor) can stream at once without taking each
+    other's messages.
+    """
+
+    def __init__(self, files: Mapping[str, bytes], bus, replay_hours: int = 36,
+                 seconds_per_hour: float = 2.0, topic: str = TELEMETRY_TOPIC):
+        self.run_id = uuid.uuid4().hex[:12]
+        self.bus, self.topic, self.seconds_per_hour = bus, topic, seconds_per_hour
+        history, self.events = split_bundle(_loose(files), replay_hours)
+        self.hours = sorted({e["datetime"] for e in self.events})
+        self.monitor = LiveMonitor(history, analyse=False)
+        self.published = self.received = 0
+        self.error: str | None = None
+        self.done = False  # every hour published and received (or stopped)
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._close: Callable[[], None] | None = None
+        self._thread = threading.Thread(target=self._run, daemon=True,
+                                        name=f"factorymind-live-{self.run_id}")
+
+    def start(self) -> "LiveStream":
+        self._close = self.bus.open_subscription(self.topic, self.run_id, self._receive)
+        self._thread.start()
+        return self
+
+    def stop(self) -> None:
+        self._stop.set()
+        if not self._thread.is_alive():
+            self._finish()
+
+    @property
+    def hours_received(self) -> int:
+        with self._lock:
+            last = self.monitor.last_hour
+        return sum(pd.Timestamp(h) <= last for h in self.hours)
+
+    @property
+    def as_of(self) -> pd.Timestamp:
+        with self._lock:
+            return self.monitor.last_hour
+
+    def bundle(self) -> dict[str, bytes]:
+        """The data received so far: the history plus every complete streamed hour."""
+        with self._lock:
+            return self.monitor.bundle()
+
+    def _receive(self, data: bytes, attributes: dict) -> None:
+        event = decode(data)
+        with self._lock:
+            self.monitor.ingest(event)
+            self.received += 1
+
+    def _run(self) -> None:
+        """Publish each hour's readings together, on a fixed clock: hour i goes out at
+        start + i × seconds_per_hour, however long publishing takes."""
+        try:
+            by_hour = defaultdict(list)
+            for event in self.events:
+                by_hour[event["datetime"]].append(event)
+            start = time.monotonic()
+            for i, hour in enumerate(self.hours):
+                if self._stop.wait(max(0.0, start + i * self.seconds_per_hour - time.monotonic())):
+                    return
+                futures = [self.bus.publish(self.topic, encode(e), {
+                    "type": e["type"], "machine_id": str(e["machineID"]),
+                    "datetime": e["datetime"], "run_id": self.run_id}, wait=False)
+                    for e in by_hour[hour]]
+                for future in futures:
+                    if future is not None:
+                        future.result(timeout=60)
+                self.published += len(futures)
+            # Wait (briefly) for the last messages to come back before closing the subscription.
+            deadline = time.monotonic() + 30
+            while (self.hours_received < len(self.hours) and not self._stop.is_set()
+                   and time.monotonic() < deadline):
+                self._stop.wait(0.2)
+        except Exception as exc:  # noqa: BLE001 - shown in the app
+            self.error = str(exc)
+        finally:
+            self._finish()
+
+    def _finish(self) -> None:
+        if self._close is not None:
+            close, self._close = self._close, None
+            close()
+        self.done = True
+
+
+def _loose(files: Mapping[str, bytes]) -> dict[str, bytes]:
+    """A bundle as loose files (name.csv, manifest.json), with any zip expanded."""
+    return {name if name == MANIFEST else f"{name}.csv": data
+            for name, data in canonical_files(files).items()}
