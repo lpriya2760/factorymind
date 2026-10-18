@@ -108,7 +108,7 @@ if demos:
     for col, (name, path) in zip(st.columns(len(demos)), demos.items()):
         if col.button(DEMOS[name], key=f"demo-{name}", width="stretch"):
             st.session_state["demo"] = name
-        col.download_button("Download .zip", path.read_bytes(), file_name=path.name,
+        col.download_button("⬇ Download .zip", path.read_bytes(), file_name=path.name,
                             key=f"download-{name}", width="stretch")
 
 if uploads:
@@ -176,28 +176,7 @@ if high:
         for m in high
     ))
 
-st.dataframe(
-    pd.DataFrame([
-        {
-            "Risk": LEVEL_BADGES[m.risk_level],
-            "Machine": m.machine_id,
-            "Model": m.model,
-            "Age": m.age,
-            # For low-risk machines the "riskiest" part and its reasons are noise.
-            "Riskiest part": m.top_component if m.risk_level != "low" else "—",
-            **{c: m.component_risk[c] * 100 for c in COMPONENTS},
-            "Why": (" · ".join(d.description for d in m.top_drivers)
-                    if m.risk_level != "low" else ""),
-        }
-        for m in report.machines
-    ]),
-    hide_index=True,
-    width="stretch",
-    column_config={
-        c: st.column_config.ProgressColumn(c, min_value=0, max_value=100, format="%.1f%%")
-        for c in COMPONENTS
-    } | {"Why": st.column_config.TextColumn("Why", width="large")},
-)
+ui.risk_table(report.machines, COMPONENTS)
 
 with st.expander("About the failure model"):
     metrics = json.loads((MODEL_DIR / "metrics.json").read_text())
@@ -534,37 +513,41 @@ def breach_text(hours):
     return f"below safety stock in {hours:.0f}h" if hours is not None else "stays above safety stock"
 
 
-chain = st.columns(5)
-with chain[0].container(border=True):
-    st.markdown("**⚙️ Machine**")
-    st.metric("Failure in 24h", p_text)
-    st.caption(f"If it fails: down {c.downtime_hours:g}h from about hour {c.failure_at_hours:g}")
-with chain[1].container(border=True):
-    st.markdown("**🔧 Quality**")
-    st.metric("Excess scrap if it fails", f"${f.excess_scrap_cost:,.0f}")
-    st.caption(f"\\${ok.excess_scrap_cost:,.0f} if it keeps running for {CASCADE_HORIZON_H}h; "
-               "a repair restores normal quality")
-with chain[2].container(border=True):
-    st.markdown(f"**📦 Inventory ({c.product or 'no product'})**"
-                + synthetic_badge("inventory", "production_schedule"))
-    st.metric("Units not made", f"{c.lost_units:,.0f}")
-    st.caption(f"If it fails: {breach_text(f.inventory_breach_hours)}. "
-               f"If not: {breach_text(ok.inventory_breach_hours)}.")
-with chain[3].container(border=True):
-    st.markdown("**🚚 Orders**" + synthetic_badge("orders"))
-    st.metric("Late if it fails", f"{len(f.late_orders)}")
-    st.caption(f"\\${f.penalties:,.0f} penalties if it fails. "
-               f"If not: {len(ok.late_orders)} late, \\${ok.penalties:,.0f}.")
-with chain[4].container(border=True):
-    st.markdown("**💰 Loss**")
-    st.metric("Expected loss", f"${c.expected_loss:,.0f}")
-    st.caption(f"\\${f.total_loss:,.0f} if it fails · \\${ok.total_loss:,.0f} if not, "
-               f"weighted by the {p_text} failure chance")
-    if c.loss_p10 == c.loss_p90:
-        st.caption(f"Range: \\${c.loss_p50:,.0f} in at least 9 of 10 simulated weeks")
-    else:
-        st.caption(f"Range: \\${c.loss_p10:,.0f}–\\${c.loss_p90:,.0f}, "
-                   f"most likely \\${c.loss_p50:,.0f}")
+def _synthetic(*tables: str) -> str | None:
+    return ("synthetic data"
+            if any(report.data_provenance.get(t) == "synthetic" for t in tables) else None)
+
+
+def _tone(bad: bool, warn: bool = False) -> str:
+    return "red" if bad else "amber" if warn else "teal"
+
+
+m_ = ui.money
+ui.cascade_chain([
+    {"icon": "gear", "title": "Machine", "label": "Failure in 24h", "value": p_text,
+     "tone": _tone(p >= 0.5, p >= 0.1), "alarm": p >= 0.5,
+     "notes": [f"If it fails: down <b>{c.downtime_hours:g}h</b> from about hour "
+               f"{c.failure_at_hours:g}"]},
+    {"icon": "drop", "title": "Quality", "label": "Excess scrap if it fails",
+     "value": m_(f.excess_scrap_cost), "tone": _tone(False, ok.excess_scrap_cost > 0),
+     "notes": [f"<b>{m_(ok.excess_scrap_cost)}</b> if it keeps running for "
+               f"{CASCADE_HORIZON_H}h", "A repair restores normal quality"]},
+    {"icon": "box", "title": f"Inventory ({c.product or 'no product'})",
+     "tag": _synthetic("inventory", "production_schedule"), "label": "Units not made",
+     "value": f"{c.lost_units:,.0f}",
+     "tone": _tone(f.inventory_breach_hours is not None, c.lost_units > 0),
+     "notes": [f"If it fails: {breach_text(f.inventory_breach_hours)}",
+               f"If not: {breach_text(ok.inventory_breach_hours)}"]},
+    {"icon": "truck", "title": "Orders", "tag": _synthetic("orders"),
+     "label": "Late if it fails", "value": f"{len(f.late_orders)}",
+     "tone": _tone(len(f.late_orders) > 0),
+     "notes": [f"<b>{m_(f.penalties)}</b> penalties if it fails",
+               f"If not: {len(ok.late_orders)} late, {m_(ok.penalties)}"]},
+    {"icon": "coin", "title": "Loss", "label": "Expected loss", "value": m_(c.expected_loss),
+     "tone": "navy",
+     "notes": [f"<b>{m_(f.total_loss)}</b> if it fails · <b>{m_(ok.total_loss)}</b> if not, "
+               f"weighted by the {p_text} failure chance"]},
+], loss_range={"lo": c.loss_p10, "mid": c.loss_p50, "hi": c.loss_p90})
 
 if c.loss_p10 == c.loss_p90 and c.expected_loss > c.loss_p90:
     range_note = (
