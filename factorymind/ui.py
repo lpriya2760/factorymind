@@ -117,7 +117,8 @@ h1, h2, h3, h4 {{ letter-spacing: -0.01em; }}
 @media (prefers-reduced-motion: reduce) {{
   .fm-card, .fm-step, .fm-step .fm-num, .fm-step .fm-sicon, .fm-step::after, .fm-table tbody tr,
   .fm-bar .fill, .fm-pill-risk::before, .fm-stage, .fm-stage .ic, .fm-stage::after,
-  .fm-stage::before, .fm-range .band, .fm-range .mark {{ animation: none !important; }} }}
+  .fm-stage::before, .fm-range .band, .fm-range .mark, .fm-live .state::before, .fm-live .fill,
+  .fm-gauge, .fm-hit, .fm-wait::before {{ animation: none !important; }} }}
 
 /* Demo bundle buttons: one colour per scenario (Streamlit tags each widget with an st-key- class) */
 .st-key-demo-comp2_failure_building button, .st-key-demo-two_machines_at_risk button,
@@ -237,6 +238,93 @@ h1, h2, h3, h4 {{ letter-spacing: -0.01em; }}
   color: #c9d6e8; margin-top: .35rem; font-variant-numeric: tabular-nums; }}
 @media (max-width: 1100px) {{ .fm-chain {{ grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }}
   .fm-stage::after, .fm-stage::before {{ display: none; }} }}
+
+/* Replay: live header, component gauges, fleet list, crossing banner */
+@keyframes fmBlink {{ 0%, 100% {{ opacity: 1; }} 50% {{ opacity: .25; }} }}
+@keyframes fmShake {{ 0%, 100% {{ transform: none; }} 20% {{ transform: translateX(-4px); }}
+  40% {{ transform: translateX(4px); }} 60% {{ transform: translateX(-2px); }}
+  80% {{ transform: translateX(2px); }} }}
+@keyframes fmScan {{ from {{ background-position: 0 0; }} to {{ background-position: 40px 0; }} }}
+.fm-live {{ display: grid; grid-template-columns: auto 1fr auto; gap: 1.2rem; align-items: center;
+  background: linear-gradient(135deg, {NAVY}, #12325c 60%, #0f4c5c); color: #fff;
+  border-radius: 16px; padding: .9rem 1.2rem; margin: .4rem 0 .9rem 0;
+  box-shadow: 0 10px 24px rgba(11,31,58,.18); }}
+.fm-live .state {{ display: inline-flex; align-items: center; gap: .45rem; font-weight: 800;
+  font-size: .78rem; letter-spacing: .08em; padding: .35rem .7rem; border-radius: 999px;
+  background: rgba(255,255,255,.1); }}
+.fm-live .state::before {{ content: ""; width: 9px; height: 9px; border-radius: 50%;
+  background: #94a3b8; }}
+.fm-live .state.on {{ background: rgba(229,72,77,.2); color: #fecaca; }}
+.fm-live .state.on::before {{ background: {RED}; animation: fmBlink 1s infinite;
+  box-shadow: 0 0 8px {RED}; }}
+.fm-live .state.hit {{ background: rgba(245,158,11,.2); color: #fde68a; }}
+.fm-live .state.hit::before {{ background: {AMBER}; }}
+.fm-live .clock {{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.45rem;
+  font-weight: 700; letter-spacing: .02em; }}
+.fm-live .clock small {{ display: block; font-family: inherit; font-size: .72rem; font-weight: 500;
+  color: #9fb6d3; letter-spacing: .04em; }}
+.fm-live .track {{ position: relative; height: 10px; border-radius: 99px;
+  background: rgba(255,255,255,.12); }}
+.fm-live .fill {{ position: absolute; inset: 0 auto 0 0; border-radius: 99px;
+  background: linear-gradient(90deg, #7ee7e6, {TEAL}); transition: width .45s ease; }}
+.fm-live .fill.on {{ background: linear-gradient(90deg, #7ee7e6, {TEAL}, #7ee7e6) 0 0 / 40px 100%;
+  animation: fmScan .8s linear infinite; }}
+.fm-live .cross {{ position: absolute; top: -5px; width: 3px; height: 20px; margin-left: -1px;
+  border-radius: 2px; background: {RED}; box-shadow: 0 0 6px {RED}; }}
+.fm-live .ticks {{ display: flex; justify-content: space-between; font-size: .7rem;
+  color: #9fb6d3; margin-top: .35rem; }}
+.fm-live .count {{ text-align: right; font-size: .78rem; color: #9fb6d3; }}
+.fm-live .count b {{ display: block; font-size: 1.35rem; color: #fff; }}
+
+.fm-gauges {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin: .5rem 0; }}
+.fm-gauge {{ display: flex; align-items: center; gap: .5rem; padding: .5rem .55rem;
+  border-radius: 14px; border: 1px solid #e3e9f1; background: #fff; }}
+.fm-gauge .ring {{ --p: 0; flex: none; width: 48px; height: 48px; border-radius: 50%;
+  background: conic-gradient(var(--gc) calc(var(--p) * 1%), #edf1f6 0);
+  display: grid; place-items: center; }}
+.fm-gauge .ring::after {{ content: attr(data-v); width: 37px; height: 37px; border-radius: 50%;
+  background: #fff; display: grid; place-items: center; font-size: .68rem; font-weight: 800;
+  color: var(--gc); }}
+.fm-gauge .nm {{ font-weight: 700; color: {NAVY}; font-family: ui-monospace, monospace; }}
+.fm-gauge .st {{ font-size: .7rem; color: #5b6b80; white-space: nowrap; }}
+.fm-gauge.over {{ border-color: {RED}; background: linear-gradient(135deg, #fde9ee, #fff);
+  --ring: rgba(229,72,77,.5); animation: fmPulse 1.6s infinite; }}
+.fm-gauge.over .st {{ color: #b4232a; font-weight: 700; }}
+
+.fm-fleet {{ border: 1px solid #e3e9f1; border-radius: 14px; overflow: hidden; }}
+.fm-fleet .row {{ display: grid; grid-template-columns: 74px 46px 1fr 52px; gap: .5rem;
+  align-items: center; padding: .42rem .7rem; border-top: 1px solid #edf1f6; font-size: .84rem; }}
+.fm-fleet .row:first-child {{ border-top: none; }}
+.fm-fleet .row.me {{ background: #eef6ff; box-shadow: inset 3px 0 0 #2563eb; }}
+.fm-fleet .row.high {{ background: linear-gradient(90deg, #fdecec, #fff 70%); }}
+.fm-fleet .mid {{ font-weight: 700; color: {NAVY}; }}
+.fm-fleet .bar {{ height: 7px; border-radius: 99px; background: #edf1f6; overflow: hidden; }}
+.fm-fleet .bar i {{ display: block; height: 100%; border-radius: 99px; background: var(--bc);
+  transition: width .45s ease; }}
+.fm-fleet .pct {{ text-align: right; font-size: .76rem; color: #5b6b80;
+  font-variant-numeric: tabular-nums; }}
+.fm-fleet .row.high .pct {{ color: #b4232a; font-weight: 700; }}
+
+.fm-hit {{ display: flex; gap: .9rem; align-items: flex-start; border-radius: 16px;
+  padding: 1rem 1.2rem; margin: .7rem 0; color: #fff;
+  background: linear-gradient(135deg, #b4232a, {RED}); box-shadow: 0 12px 26px rgba(229,72,77,.3);
+  animation: fmShake .6s ease 1, fmRise .4s ease both; }}
+.fm-hit .big {{ font-size: 1.7rem; line-height: 1; }}
+.fm-hit b {{ font-weight: 800; }}
+.fm-hit .why {{ font-size: .82rem; opacity: .9; margin-top: .3rem; }}
+.fm-wait {{ display: inline-flex; align-items: center; gap: .5rem; font-size: .85rem;
+  color: #5b6b80; background: #f4f7fb; border: 1px dashed #c9d6e8; border-radius: 999px;
+  padding: .35rem .8rem; margin-top: .4rem; }}
+.fm-wait::before {{ content: ""; width: 8px; height: 8px; border-radius: 50%; background: {TEAL};
+  animation: fmBlink 1.4s infinite; }}
+/* replay controls */
+.st-key-replay_play button {{ border-radius: 12px; font-weight: 800; border: none !important;
+  background: linear-gradient(135deg, #0b7d7c, {TEAL}) !important;
+  box-shadow: 0 8px 18px rgba(14,165,164,.35); }}
+.st-key-replay_play button p {{ color: #fff !important; }}
+.st-key-replay_next button, .st-key-replay_reset button {{ border-radius: 12px; }}
+@media (max-width: 900px) {{ .fm-live {{ grid-template-columns: 1fr; }}
+  .fm-gauges {{ grid-template-columns: repeat(2, 1fr); }} }}
 
 /* KPI tiles */
 .fm-kpis {{ display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -559,6 +647,78 @@ def cascade_chain(stages: list[dict], loss_range: dict | None = None) -> None:
             f'<div class="lbl">{escape(st_["label"])}</div>'
             f'<div class="val">{escape(st_["value"])}</div>{notes}{extra}</div>')
     st.html(f'<div class="fm-chain">{"".join(cards)}</div>')
+
+
+def _risk_colour(p: float, threshold: float) -> str:
+    return RED if p >= threshold else AMBER if p >= threshold / 2 else TEAL
+
+
+def _pct_text(p: float) -> str:
+    return ">99%" if p > 0.99 else "<0.1%" if p < 0.001 else f"{p:.1%}"
+
+
+def replay_header(step: int, total: int, at, playing: bool, crossed: bool,
+                  crossing_step: int | None, first, last) -> None:
+    """The live-replay strip: state badge, the data clock, a progress track with the crossing
+    marked, and the hour count."""
+    state = ("on", "● LIVE REPLAY") if playing else (("hit", "THRESHOLD HIT") if crossed
+                                                     else ("", "PAUSED"))
+    width = 100 * (step + 1) / total
+    cross = (f'<div class="cross" style="left:{100 * (crossing_step + 0.5) / total:.1f}%" '
+             f'title="threshold crossed"></div>' if crossing_step is not None else "")
+    st.html(f'''<div class="fm-live">
+  <div><span class="state {state[0]}">{state[1].replace("● ", "")}</span></div>
+  <div><div class="track"><div class="fill{' on' if playing else ''}" style="width:{width:.1f}%"></div>{cross}</div>
+    <div class="ticks"><span>{first:%d %b %H:%M}</span><span>{last:%d %b %H:%M}</span></div></div>
+  <div class="count"><b>{step + 1}<span style="font-size:.85rem;color:#9fb6d3">/{total}</span></b>hours</div>
+</div>
+<div class="fm-live" style="grid-template-columns:1fr;padding:.6rem 1.2rem;margin-top:-.4rem;
+  background:#f4f7fb;color:{NAVY};box-shadow:none;border:1px solid #e3e9f1">
+  <div class="clock" style="font-size:1.1rem">🕒 Data up to {at:%a %d %b %Y, %H:%M}
+  <small style="color:#5b6b80">the model only sees readings up to this hour</small></div>
+</div>''')
+
+
+def component_gauges(risk: dict[str, float], threshold: float) -> None:
+    """One ring gauge per component, filled to its 24h failure chance; red and pulsing once it
+    is over the threshold."""
+    cells = []
+    for name, p in risk.items():
+        colour = _risk_colour(p, threshold)
+        over = p >= threshold
+        status = "OVER LIMIT" if over else "below limit"
+        cells.append(f'<div class="fm-gauge{" over" if over else ""}">'
+                     f'<div class="ring" style="--p:{min(p * 100, 100):.1f};--gc:{colour}" '
+                     f'data-v="{_pct_text(p)}"></div>'
+                     f'<div><div class="nm">{escape(name)}</div><div class="st">{status}</div>'
+                     f'</div></div>')
+    st.html(f'<div class="fm-gauges">{"".join(cells)}</div>')
+
+
+def fleet_list(machines, watched: int, threshold: float) -> None:
+    """Every machine at this replay hour, riskiest first; the watched one highlighted."""
+    labels = {"high": "High", "medium": "Medium", "low": "Low"}
+    rows = []
+    for m in machines:
+        cls = ("me " if m.machine_id == watched else "") + ("high" if m.max_risk >= threshold else "")
+        colour = _risk_colour(m.max_risk, threshold)
+        rows.append(f'<div class="row {cls}">'
+                    f'<span class="fm-pill-risk {m.risk_level}">{labels[m.risk_level]}</span>'
+                    f'<span class="mid">{m.machine_id}</span>'
+                    f'<div class="bar" style="--bc:{colour}"><i style="width:{max(m.max_risk * 100, 1.5):.1f}%"></i></div>'
+                    f'<span class="pct">{_pct_text(m.max_risk)}</span></div>')
+    st.html(f'<div class="fm-fleet">{"".join(rows)}</div>')
+
+
+def crossing_banner(when, machine: int, component: str, probability: float, why: str) -> None:
+    why_html = f'<div class="why">Why: {escape(why)}</div>' if why else ""
+    st.html(f'<div class="fm-hit"><div class="big">🚨</div><div><b>Threshold crossed at '
+            f'{when:%d %b %Y, %H:%M}</b><br>Machine {machine} {escape(component)} is '
+            f'<b>{_pct_text(probability)}</b> likely to fail in the next 24h.{why_html}</div></div>')
+
+
+def waiting(text: str) -> None:
+    st.html(f'<div class="fm-wait">{escape(text)}</div>')
 
 
 def footer() -> None:
