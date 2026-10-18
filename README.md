@@ -279,7 +279,7 @@ Below the risk table, **🔔 Alerts** lists every machine at high risk: its risk
 
 ### Real-time alerts from streamed data
 
-`factorymind/stream.py` watches data **as it arrives**:
+`factorymind/pubsub.py` watches data **as it arrives**:
 1. `RiskMonitor.ingest()` takes new telemetry and error readings and keeps a rolling 48h window per machine.
 2. It re-scores the machines that got new data with the failure model.
 3. It raises an alert **the moment** a machine crosses into high risk. The alert includes the component, its failure chance, the drivers, the expected loss and the best action.
@@ -335,6 +335,51 @@ A production feed would publish readings to Pub/Sub and push them to a Cloud Run
 **Secrets never go into plain settings.** `deploy.sh` passes the non-secret variables above as normal settings, and the Slack webhook and SMTP password only through Secret Manager.
 
 **Tests** replace Slack and the mail server with fakes, so they run offline. This includes replaying all three demo bundles: one alert for the comp2 bundle, two for the two-machines bundle, and none for the healthy fleet.
+
+## Replay in the app
+
+The **Replay** section steps through the bundle's last hours of telemetry (48 by default), one hour at a time, as if the readings were arriving live. It shows the risk of each component of the machine you're watching, and the whole fleet's risk at that hour.
+
+- **Play, Pause, Step and Reset**, at 1, 2, 4 or 8 hours a second.
+- **Threshold** (50% by default): when any component of the watched machine reaches it, playback pauses and the recommendation appears. That is the best action from re-analysing the data *up to that hour*, plus Gemini's checked recommendation.
+- **No lookahead:** the model's features only look back, so each replayed hour's risk is exactly what a prediction made then would say. A test checks this against `analyze()` on the data cut at that hour.
+
+On `comp2_failure_building`, machine 90's comp2 risk stays under 0.2% for 35 hours. Then, at **19 May 06:00**, it jumps to 99.8%: "Replace comp2, machine 47 covers", a net benefit of $16,361, a day before the real failure. Code: [`factorymind/replay.py`](factorymind/replay.py).
+
+## Live monitoring over Pub/Sub
+
+FactoryMind can also watch a **stream** of sensor readings and raise an alert the moment a machine turns risky. With no plant connected, it replays the **real Azure PdM readings** through Google Cloud Pub/Sub, sped up:
+
+```
+replay_publisher ──► factorymind-telemetry ──► monitor ──► factorymind-alerts ──► BigQuery / Slack / email
+```
+
+- **The publisher** sends the last 36 hours of telemetry and error readings, one message per reading, one simulated hour every 2 seconds (`--seconds-per-hour` changes it).
+- **The monitor** re-runs the full analysis each time every machine has reported for the next hour. It ignores duplicate and out-of-order deliveries. When a machine first reaches high risk, it publishes a JSON alert with the riskiest part, expected loss, loss range and best action.
+
+On the `comp2_failure_building` demo, all machines stay green until **19 May 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99% and one alert fires: $22,623 expected loss, "Replace comp2, machine 47 covers".
+
+**Try it offline** (no Google Cloud needed, same pipeline in memory):
+
+```bash
+uv run python scripts/stream_demo.py --seconds-per-hour 0.5
+```
+
+**Run it on Pub/Sub:**
+
+```bash
+gcloud auth application-default login          # once
+./scripts/pubsub_setup.sh                      # once: topics + subscriptions (WITH_BIGQUERY=1 adds an alerts table)
+uv run --group stream python scripts/monitor.py                               # terminal 1
+uv run --group stream python scripts/replay_publisher.py                     # terminal 2
+gcloud pubsub subscriptions pull factorymind-alerts-tail --auto-ack           # see the alert
+```
+
+- Add `--notify` to the monitor to also send the alert to the Slack/email channels above.
+- The web app on Cloud Run is unchanged. The Pub/Sub client is an optional `stream` dependency group.
+- Pub/Sub's free tier covers this many times over.
+
+For a real plant, sensors would reach the same topic through an edge gateway (OPC UA or MQTT), and nothing after the topic changes. See [ADR 0006](docs/adr/0006-live-monitoring-over-pubsub.md).
 
 ## Costs and guardrails
 
