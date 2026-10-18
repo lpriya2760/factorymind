@@ -115,7 +115,128 @@ h1, h2, h3, h4 {{ letter-spacing: -0.01em; }}
 @media (max-width: 1000px) {{ .fm-steps {{ grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }}
   .fm-step::after {{ display: none; }} }}
 @media (prefers-reduced-motion: reduce) {{
-  .fm-card, .fm-step, .fm-step .fm-num, .fm-step .fm-sicon, .fm-step::after {{ animation: none !important; }} }}
+  .fm-card, .fm-step, .fm-step .fm-num, .fm-step .fm-sicon, .fm-step::after, .fm-table tbody tr,
+  .fm-bar .fill, .fm-pill-risk::before, .fm-stage, .fm-stage .ic, .fm-stage::after,
+  .fm-stage::before, .fm-range .band, .fm-range .mark {{ animation: none !important; }} }}
+
+/* Demo bundle buttons: one colour per scenario (Streamlit tags each widget with an st-key- class) */
+.st-key-demo-comp2_failure_building button, .st-key-demo-two_machines_at_risk button,
+.st-key-demo-healthy_fleet button {{ color: #fff !important; border: none !important;
+  font-weight: 700; padding: .65rem 1rem; border-radius: 12px;
+  transition: transform .2s, box-shadow .2s, filter .2s; }}
+.st-key-demo-comp2_failure_building button {{ background: linear-gradient(135deg, #b4232a, {RED});
+  box-shadow: 0 8px 18px rgba(229,72,77,.35); }}
+.st-key-demo-two_machines_at_risk button {{ background: linear-gradient(135deg, #b45309, {AMBER});
+  box-shadow: 0 8px 18px rgba(245,158,11,.35); }}
+.st-key-demo-healthy_fleet button {{ background: linear-gradient(135deg, #15803d, #22c55e);
+  box-shadow: 0 8px 18px rgba(34,197,94,.35); }}
+.st-key-demo-comp2_failure_building button:hover, .st-key-demo-two_machines_at_risk button:hover,
+.st-key-demo-healthy_fleet button:hover {{ transform: translateY(-3px); filter: brightness(1.07); }}
+.st-key-demo-comp2_failure_building button p, .st-key-demo-two_machines_at_risk button p,
+.st-key-demo-healthy_fleet button p {{ color: #fff !important; }}
+/* matching outlined download buttons */
+.st-key-download-comp2_failure_building button {{ --dc: {RED}; }}
+.st-key-download-two_machines_at_risk button {{ --dc: #d97706; }}
+.st-key-download-healthy_fleet button {{ --dc: #16a34a; }}
+[class*="st-key-download-"] button {{ background: #fff !important; border: 1.5px solid var(--dc) !important;
+  border-radius: 12px; transition: background .2s, transform .2s; }}
+[class*="st-key-download-"] button p {{ color: var(--dc) !important; font-weight: 600; }}
+[class*="st-key-download-"] button:hover {{
+  background: color-mix(in srgb, var(--dc) 10%, #fff) !important; transform: translateY(-2px); }}
+
+/* Risk table */
+.fm-table-wrap {{ overflow-x: auto; border: 1px solid #e3e9f1; border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(11,31,58,.06); margin: .4rem 0 .8rem 0; }}
+.fm-table {{ width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem;
+  min-width: 760px; }}
+.fm-table th {{ position: sticky; top: 0; background: {NAVY}; color: #fff; text-align: left;
+  font-weight: 600; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase;
+  padding: .65rem .6rem; white-space: nowrap; }}
+.fm-table td {{ padding: .6rem .6rem; white-space: nowrap; border-top: 1px solid #edf1f6; vertical-align: middle;
+  color: {NAVY}; }}
+.fm-table tbody tr {{ transition: background .15s; animation: fmRise .4s ease both; }}
+.fm-table tbody tr:hover {{ background: #f4f8fc; }}
+.fm-table tr.high {{ background: linear-gradient(90deg, #fdecec, #fff 60%); }}
+.fm-table tr.high td:first-child {{ box-shadow: inset 4px 0 0 {RED}; }}
+.fm-table tr.medium {{ background: linear-gradient(90deg, #fdf3e3, #fff 60%); }}
+.fm-table tr.medium td:first-child {{ box-shadow: inset 4px 0 0 {AMBER}; }}
+.fm-pill-risk {{ display: inline-flex; align-items: center; gap: .35rem; padding: .22rem .65rem;
+  border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }}
+.fm-pill-risk::before {{ content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }}
+.fm-pill-risk.high {{ background: #fde2e3; color: #b4232a; }}
+.fm-pill-risk.high::before {{ animation: fmPulse 1.6s infinite; --ring: rgba(229,72,77,.6); }}
+.fm-pill-risk.medium {{ background: #fdecc8; color: #92400e; }}
+.fm-pill-risk.low {{ background: #dcfce7; color: #15803d; }}
+.fm-mid {{ font-weight: 700; }}
+.fm-part {{ display: inline-block; padding: .15rem .5rem; border-radius: 6px; background: #eef2f7;
+  font-family: ui-monospace, monospace; font-size: .8rem; }}
+.fm-bar {{ width: 64px; }}
+.fm-bar .track {{ height: 7px; border-radius: 99px; background: #edf1f6; overflow: hidden; }}
+.fm-bar .fill {{ height: 100%; border-radius: 99px; background: var(--bc);
+  animation: fmGrow .9s cubic-bezier(.2,.7,.2,1) both; transform-origin: left; }}
+.fm-bar .num {{ font-size: .75rem; color: #5b6b80; margin-top: .2rem; font-variant-numeric: tabular-nums; }}
+.fm-bar.hot .num {{ color: #b4232a; font-weight: 700; }}
+@keyframes fmGrow {{ from {{ transform: scaleX(0); }} to {{ transform: scaleX(1); }} }}
+.fm-table td.fm-why {{ color: #5b6b80; font-size: .8rem; line-height: 1.35; white-space: normal;
+  min-width: 200px; }}
+
+/* Cascade chain: machine -> quality -> inventory -> orders -> money */
+.fm-chain {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.6rem;
+  margin: .6rem 0 1rem 0; }}
+.fm-stage {{ position: relative; border-radius: 18px; padding: 1rem 1rem 1.05rem;
+  background: linear-gradient(170deg, var(--t), #fff 70%);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, #e3e9f1);
+  box-shadow: 0 6px 16px rgba(11,31,58,.06);
+  animation: fmRise .55s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d);
+  transition: transform .25s, box-shadow .25s; }}
+.fm-stage:hover {{ transform: translateY(-5px);
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--c) 25%, transparent); }}
+.fm-stage .head {{ display: flex; align-items: center; gap: .55rem; margin-bottom: .7rem; }}
+.fm-stage .ic {{ position: relative; flex: none; width: 38px; height: 38px; border-radius: 12px;
+  display: grid; place-items: center; background: #fff;
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--c) 25%, transparent); }}
+.fm-stage .ic img {{ width: 21px; height: 21px; }}
+.fm-stage.alarm .ic {{ --ring: color-mix(in srgb, var(--c) 60%, transparent);
+  animation: fmPulse 1.8s infinite; }}
+.fm-stage .ttl {{ font-weight: 700; color: {NAVY}; font-size: .95rem; line-height: 1.2; }}
+.fm-stage .tag {{ display: inline-block; margin-top: .15rem; font-size: .66rem; font-weight: 700;
+  color: #b45309; background: #fef3c7; border-radius: 6px; padding: .05rem .4rem; }}
+.fm-stage .lbl {{ font-size: .75rem; color: #5b6b80; text-transform: uppercase;
+  letter-spacing: .04em; }}
+.fm-stage .val {{ font-size: 1.85rem; font-weight: 800; color: var(--c); line-height: 1.15;
+  margin: .1rem 0 .55rem 0; font-variant-numeric: tabular-nums; }}
+.fm-stage .note {{ font-size: .8rem; color: #5b6b80; line-height: 1.4; margin-top: .25rem; }}
+.fm-stage .note b {{ color: {NAVY}; }}
+/* animated connector: a dashed line with a travelling dot */
+.fm-stage:not(:last-child)::after {{ content: ""; position: absolute; top: 34px; right: -1.55rem;
+  width: 1.5rem; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, #94a3b8 50%, transparent 50%) 0 0 / 7px 3px repeat-x;
+  animation: fmFlow .7s linear infinite; }}
+.fm-stage:not(:last-child)::before {{ content: ""; position: absolute; top: 30px; right: -1.55rem;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 8px var(--c); animation: fmTravel 1.6s ease-in-out infinite;
+  animation-delay: var(--d); z-index: 1; }}
+@keyframes fmTravel {{ 0% {{ transform: translateX(-4px); opacity: 0; }}
+  20% {{ opacity: 1; }} 80% {{ opacity: 1; }} 100% {{ transform: translateX(22px); opacity: 0; }} }}
+/* the loss stage is the destination: filled */
+.fm-stage.money {{ background: linear-gradient(150deg, {NAVY}, #1d4677); border: none; color: #fff; }}
+.fm-stage.money .ttl, .fm-stage.money .val {{ color: #fff; }}
+.fm-stage.money .lbl, .fm-stage.money .note {{ color: #c9d6e8; }}
+.fm-stage.money .note b {{ color: #fff; }}
+.fm-range {{ margin-top: .7rem; }}
+.fm-range .scale {{ position: relative; height: 10px; border-radius: 99px;
+  background: rgba(255,255,255,.15); }}
+.fm-range .band {{ position: absolute; top: 0; bottom: 0; border-radius: 99px;
+  background: linear-gradient(90deg, #7ee7e6, {AMBER});
+  animation: fmGrow .9s cubic-bezier(.2,.7,.2,1) both; animation-delay: .5s;
+  transform-origin: left; }}
+.fm-range .mark {{ position: absolute; top: -4px; width: 4px; height: 18px; margin-left: -2px;
+  border-radius: 2px; background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.8);
+  animation: fmRise .5s ease both; animation-delay: 1.1s; }}
+.fm-range .cap {{ display: flex; justify-content: space-between; font-size: .72rem;
+  color: #c9d6e8; margin-top: .35rem; font-variant-numeric: tabular-nums; }}
+@media (max-width: 1100px) {{ .fm-chain {{ grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }}
+  .fm-stage::after, .fm-stage::before {{ display: none; }} }}
 
 /* KPI tiles */
 .fm-kpis {{ display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -356,6 +477,88 @@ def kpis(tiles: list[tuple[str, str, str, str]]) -> None:
         f'<div class="fm-kpi {c}"><div class="fm-label">{escape(label)}</div>'
         f'<div class="fm-value">{escape(value)}</div><div class="fm-note">{escape(note)}</div>'
         f'</div>' for c, label, value, note in tiles) + "</div>")
+
+
+def _bar(p: float) -> str:
+    """A component's 24h failure chance as a coloured bar."""
+    colour = RED if p >= 0.5 else AMBER if p >= 0.1 else TEAL
+    text = ">99%" if p > 0.99 else f"{p * 100:.1f}%"
+    hot = " hot" if p >= 0.5 else ""
+    width = max(p * 100, 1.5)  # keep a sliver visible for tiny risks
+    return (f'<div class="fm-bar{hot}" style="--bc:{colour}"><div class="track">'
+            f'<div class="fill" style="width:{width:.1f}%"></div></div>'
+            f'<div class="num">{text}</div></div>')
+
+
+def risk_table(machines, components: list[str]) -> None:
+    """The fleet risk table: riskiest first, a coloured row and pill per risk level."""
+    labels = {"high": "High", "medium": "Medium", "low": "Low"}
+    head = ("<tr><th>Risk</th><th>Machine</th><th>Model</th><th>Age</th><th>Riskiest part</th>"
+            + "".join(f"<th>{escape(c)}</th>" for c in components) + "<th>Why</th></tr>")
+    rows = []
+    for n, m in enumerate(machines):
+        low = m.risk_level == "low"
+        # For low-risk machines the "riskiest" part and its reasons are noise.
+        part = "—" if low else f'<span class="fm-part">{escape(m.top_component)}</span>'
+        why = "" if low else escape(" · ".join(d.description for d in m.top_drivers))
+        rows.append(
+            f'<tr class="{m.risk_level}" style="animation-delay:{n * 0.04:.2f}s">'
+            f'<td><span class="fm-pill-risk {m.risk_level}">{labels[m.risk_level]}</span></td>'
+            f'<td class="fm-mid">{m.machine_id}</td><td>{escape(m.model)}</td>'
+            f'<td>{m.age} yrs</td><td>{part}</td>'
+            + "".join(f"<td>{_bar(m.component_risk[c])}</td>" for c in components)
+            + f'<td class="fm-why">{why}</td></tr>')
+    st.html(f'<div class="fm-table-wrap"><table class="fm-table"><thead>{head}</thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>')
+
+
+TONES = {"red": (RED, "#fde9ee"), "amber": ("#d97706", "#fdf3e3"),
+         "teal": (TEAL, "#e6f7f7"), "navy": (NAVY, "#e8effd")}
+
+
+def money(x: float) -> str:
+    return f"${x:,.0f}"
+
+
+def cascade_chain(stages: list[dict], loss_range: dict | None = None) -> None:
+    """The five linked cascade cards. Each stage: icon, title, label, value, notes (HTML
+    strings, already escaped), tone (red|amber|teal|navy), and optionally tag and alarm. The last
+    stage is drawn as the filled 'money' card, with the Monte Carlo range bar when given:
+    {lo, mid, hi} in USD."""
+    cards = []
+    for n, st_ in enumerate(stages):
+        c, t = TONES[st_["tone"]]
+        last = n == len(stages) - 1
+        classes = "fm-stage" + (" money" if last else "") + (" alarm" if st_.get("alarm") else "")
+        tag = f'<div class="tag">{escape(st_["tag"])}</div>' if st_.get("tag") else ""
+        notes = "".join(f'<div class="note">{note}</div>' for note in st_["notes"])
+        extra = ""
+        if last and loss_range:
+            # Zoom the scale onto the range so its spread is visible.
+            low, high = loss_range["lo"] * 0.85, loss_range["hi"] * 1.05
+            span = (high - low) or 1
+
+            def pos(x):
+                return 100 * (x - low) / span
+
+            left = pos(loss_range["lo"])
+            width = max(pos(loss_range["hi"]) - left, 1.5)
+            mid = pos(loss_range["mid"])
+            extra = (f'<div class="fm-range"><div class="scale">'
+                     f'<div class="band" style="left:{left:.1f}%;width:{width:.1f}%"></div>'
+                     f'<div class="mark" style="left:{mid:.1f}%"></div></div>'
+                     f'<div class="cap"><span>P10 {money(loss_range["lo"])}</span>'
+                     f'<span>P50 {money(loss_range["mid"])}</span>'
+                     f'<span>P90 {money(loss_range["hi"])}</span></div></div>')
+        icon_colour = "#ffffff" if last else c
+        ic_bg = ' style="background:rgba(255,255,255,.12)"' if last else ""
+        cards.append(
+            f'<div class="{classes}" style="--c:{c};--t:{t};--d:{n * 0.12:.2f}s">'
+            f'<div class="head"><div class="ic"{ic_bg}>{icon(st_["icon"], icon_colour)}</div>'
+            f'<div><div class="ttl">{escape(st_["title"])}</div>{tag}</div></div>'
+            f'<div class="lbl">{escape(st_["label"])}</div>'
+            f'<div class="val">{escape(st_["value"])}</div>{notes}{extra}</div>')
+    st.html(f'<div class="fm-chain">{"".join(cards)}</div>')
 
 
 def footer() -> None:
