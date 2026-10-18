@@ -5,7 +5,7 @@ Predictive Maintenance data) to the factorymind-telemetry topic, one simulated h
 --seconds-per-hour seconds. Start scripts/monitor.py first (or any time: the subscription
 keeps the messages).
 
-    uv run --group stream python scripts/replay_publisher.py --seconds-per-hour 1
+    uv run --group stream python scripts/replay_publisher.py
 """
 
 import argparse
@@ -19,8 +19,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     add_common_args(parser)
-    parser.add_argument("--seconds-per-hour", type=float, default=1.0,
-                        help="real seconds per simulated hour (default 1)")
+    parser.add_argument("--seconds-per-hour", type=float, default=10.0,
+                        help="real seconds per simulated hour (default 10)")
     parser.add_argument("--topic", default=TELEMETRY_TOPIC)
     args = parser.parse_args()
 

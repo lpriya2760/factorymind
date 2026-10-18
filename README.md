@@ -354,7 +354,7 @@ FactoryMind can also watch a **stream** of sensor readings and raise an alert th
 replay_publisher ──► factorymind-telemetry ──► monitor ──► factorymind-alerts ──► BigQuery / Slack / email
 ```
 
-- **The publisher** sends the last 36 hours of telemetry and error readings, one message per reading, one simulated hour per second.
+- **The publisher** sends the last 36 hours of telemetry and error readings, one message per reading, one simulated hour every 10 seconds (`--seconds-per-hour` changes it).
 - **The monitor** re-runs the full analysis each time every machine has reported for the next hour. It ignores duplicate and out-of-order deliveries. When a machine first reaches high risk, it publishes a JSON alert with the riskiest part, expected loss, loss range and best action.
 
 On the `comp2_failure_building` demo, all machines stay green until **19 May 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99% and one alert fires: $22,623 expected loss, "Replace comp2, machine 47 covers".
@@ -371,7 +371,7 @@ uv run python scripts/stream_demo.py --seconds-per-hour 0.5
 gcloud auth application-default login          # once
 ./scripts/pubsub_setup.sh                      # once: topics + subscriptions (WITH_BIGQUERY=1 adds an alerts table)
 uv run --group stream python scripts/monitor.py                               # terminal 1
-uv run --group stream python scripts/replay_publisher.py --seconds-per-hour 1 # terminal 2
+uv run --group stream python scripts/replay_publisher.py                     # terminal 2
 gcloud pubsub subscriptions pull factorymind-alerts-tail --auto-ack           # see the alert
 ```
 
