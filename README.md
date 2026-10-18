@@ -336,6 +336,16 @@ A production feed would publish readings to Pub/Sub and push them to a Cloud Run
 
 **Tests** replace Slack and the mail server with fakes, so they run offline. This includes replaying all three demo bundles: one alert for the comp2 bundle, two for the two-machines bundle, and none for the healthy fleet.
 
+## Replay in the app
+
+The **Replay** section steps through the bundle's last hours of telemetry (48 by default), one hour at a time, as if the readings were arriving live. It shows the risk of each component of the machine you're watching, and the whole fleet's risk at that hour.
+
+- **Play, Pause, Step and Reset**, at 1, 2, 4 or 8 hours a second.
+- **Threshold** (50% by default): when any component of the watched machine reaches it, playback pauses and the recommendation appears. That is the best action from re-analysing the data *up to that hour*, plus Gemini's checked recommendation.
+- **No lookahead:** the model's features only look back, so each replayed hour's risk is exactly what a prediction made then would say. A test checks this against `analyze()` on the data cut at that hour.
+
+On `comp2_failure_building`, machine 90's comp2 risk stays under 0.2% for 35 hours. Then, at **19 May 06:00**, it jumps to 99.8%: "Replace comp2, machine 47 covers", a net benefit of $16,361, a day before the real failure. Code: [`factorymind/replay.py`](factorymind/replay.py).
+
 ## Live monitoring over Pub/Sub
 
 FactoryMind can also watch a **stream** of sensor readings and raise an alert the moment a machine turns risky. With no plant connected, it replays the **real Azure PdM readings** through Google Cloud Pub/Sub, sped up:
