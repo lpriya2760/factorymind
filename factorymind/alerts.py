@@ -218,3 +218,41 @@ def send_alert(alert: Alert, config: AlertConfig, post: Post = _urllib_post,
         except Exception as exc:  # noqa: BLE001 - reported per channel
             results["email"] = str(exc)
     return results
+
+
+# --- real-time alerts from the stream (factorymind.stream) -----------------------------------
+
+def format_slack_event(event) -> dict:
+    """An incoming-webhook payload for one machine that has just become risky (a RiskEvent)."""
+    headline = (f"{LEVEL_EMOJI[event.risk_level]} Machine {event.machine_id}: {event.component} "
+                f"is {_pct(event.failure_probability)} likely to fail in the next 24h")
+    action = event.best_action
+    if event.net_benefit > 0:
+        action += f" (costs ${event.action_cost:,.0f}, net benefit ${event.net_benefit:,.0f})"
+    why = "\n".join(f"• {d}" for d in event.drivers) or "• (no single strong driver)"
+    return {
+        "text": headline,
+        "blocks": [
+            {"type": "header", "text": {"type": "plain_text", "text": f"🏭 {headline}"}},
+            {"type": "section", "fields": [
+                {"type": "mrkdwn", "text": f"*Machine*\n{event.machine_id} ({event.model})"},
+                {"type": "mrkdwn", "text": f"*Expected loss*\n${event.expected_loss:,.0f}"},
+                {"type": "mrkdwn", "text": f"*Best action*\n{action}"},
+                {"type": "mrkdwn", "text": f"*Detected*\n{event.at:%Y-%m-%d %H:%M} (data time)"},
+            ]},
+            {"type": "section", "text": {"type": "mrkdwn", "text": f"*Why*\n{why}"}},
+            {"type": "context", "elements": [{
+                "type": "mrkdwn",
+                "text": "Real-time alert from FactoryMind's risk monitor. Open FactoryMind for "
+                        "the cascade and every option."}]},
+        ],
+    }
+
+
+def send_slack_event(event, webhook_url: str, post: Post = _urllib_post) -> None:
+    post(webhook_url, json.dumps(format_slack_event(event)).encode())
+
+
+def slack_notifier(webhook_url: str, post: Post = _urllib_post):
+    """A RiskMonitor `notify` callback that posts each event to Slack."""
+    return lambda event: send_slack_event(event, webhook_url, post)

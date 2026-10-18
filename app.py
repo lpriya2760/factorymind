@@ -3,7 +3,8 @@
 import hashlib
 import json
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -13,12 +14,15 @@ from dotenv import load_dotenv
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind import quality
 from factorymind.agent import Chat, recommend
-from factorymind.alerts import AlertConfig, build_alert, format_email, send_alert
+from factorymind.alerts import (Alert, AlertConfig, build_alert, format_email, send_alert,
+                                send_slack)
+from factorymind.alerts import _pct as alert_pct
 from factorymind.alerts import subject as alert_subject
 from factorymind.assumptions import ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS
 from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H, MC_SAMPLES, PREDICTION_WINDOW_H
 from factorymind.engine import DEFAULT_QUALITY_HORIZON_H, analyze
 from factorymind.predict import MODEL_DIR
+from factorymind.stream import AlertLedger
 from factorymind import ui
 
 # Local development reads GOOGLE_API_KEY from .env; Cloud Run uses Vertex AI settings instead.
@@ -214,6 +218,12 @@ with st.expander("About the failure model"):
 
 bundle_key = hashlib.sha256(b"".join(files.values())).hexdigest()[:16]
 
+@st.cache_resource
+def slack_alert_state():
+    """Shared by every visitor: which risks were already alerted, and failed sends to retry."""
+    return AlertLedger(), {}
+
+
 ui.section("bell", "Alerts", "Tell the team on Slack or email which machines need action.",
            ui.AMBER)
 try:
@@ -229,28 +239,56 @@ if alert_config is not None:
         with st.expander(f"Alert preview: {alert_subject(alert)}"):
             st.text(format_email(alert, alert_config.email_from or "factorymind",
                                  alert_config.email_to or ["(no recipients)"]).get_content())
-        if not alert_config.channels:
-            st.caption("Set `SLACK_WEBHOOK_URL` and/or the `ALERT_EMAIL_TO` and `SMTP_*` "
-                       "settings to send this alert to Slack or email (see the README).")
+        # Slack: sent automatically, once per dataset, machine and component, for every visitor.
+        if not alert_config.slack_enabled:
+            st.caption("Set `SLACK_WEBHOOK_URL` to send alerts to Slack automatically "
+                       "(see the README's Slack setup).")
         else:
-            sent = st.session_state.setdefault("alerts_sent", set())
+            ledger, failures = slack_alert_state()
+            keys = {m.machine_id: (bundle_key, m.machine_id, m.top_component)
+                    for m in alert.machines}
+            due = [m for m in alert.machines if ledger.should_alert(keys[m.machine_id],
+                                                                       datetime.now())
+                   and keys[m.machine_id] not in failures]
+            if due:
+                try:
+                    send_slack(Alert(machines=due, min_level=alert.min_level),
+                               alert_config.slack_webhook_url)
+                    for m in due:
+                        ledger.record(keys[m.machine_id], datetime.now())
+                    _log.info("Slack alert sent for machines %s", [m.machine_id for m in due])
+                except Exception as exc:  # noqa: BLE001 - shown and logged, then retryable
+                    _log.warning("Slack alert failed: %s", exc)
+                    for m in due:
+                        failures[keys[m.machine_id]] = str(exc)
+            for m in alert.machines:
+                key = keys[m.machine_id]
+                if key in failures:
+                    st.error(f"Couldn't send the Slack alert for machine {m.machine_id}: "
+                             f"{failures[key]}")
+                    if st.button("Retry sending to Slack", key=f"retry-{m.machine_id}"):
+                        failures.pop(key, None)
+                        st.rerun()
+                else:
+                    sent_at = ledger.sent_at(key)
+                    st.success(f"✅ Alert sent to Slack at {sent_at:%H:%M} for machine "
+                               f"{m.machine_id} ({m.top_component} {alert_pct(m.failure_probability)} likely to "
+                               "fail in the next 24h)." if sent_at else "Alert pending.")
+        # Email stays a deliberate, button-triggered send.
+        if alert_config.email_enabled:
+            email_only = replace(alert_config, slack_webhook_url=None)
+            sent = st.session_state.setdefault("emails_sent", set())
             alert_key = (bundle_key, tuple(sorted(assumptions.items())))
-            label = "Send alert to " + " and ".join(alert_config.channels)
             if alert_key in sent:
-                st.caption("✅ Alert already sent for this data and these assumptions.")
-                label = "Send again"
-            if st.button(label, key="send-alert"):
+                st.caption("✅ Email already sent for this data and these assumptions.")
+            elif st.button("Send alert by email", key="send-email"):
                 with st.spinner("Sending…"):
-                    results = send_alert(alert, alert_config)
-                for channel, error in results.items():
-                    if error:
-                        _log.warning("Alert to %s failed: %s", channel, error)
-                        st.error(f"Couldn't send to {channel}: {error}")
-                    else:
-                        _log.info("Alert sent to %s", channel)
-                        st.success(f"Sent to {channel}.")
-                if not any(results.values()):
+                    error = send_alert(alert, email_only).get("email")
+                if error:
+                    st.error(f"Couldn't send the email: {error}")
+                else:
                     sent.add(alert_key)
+                    st.success("Email sent.")
 
 ui.section("gear", "Machine detail", "Pick a machine to see its quality, cascade and options.")
 by_id = {m.machine_id: m for m in report.machines}

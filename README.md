@@ -272,22 +272,69 @@ Below the recommendation, a chat answers follow-up questions about the uploaded 
 
 ## Slack and email alerts
 
-Below the risk table, **🔔 Alerts** previews a message listing every machine at high risk: its riskiest part and failure chance, the expected loss from the cascade, and the best action from the simulator. **Send alert** delivers it to Slack, email or both (`factorymind/alerts.py`). Nothing is sent automatically, and the message contains only figures already on screen.
+Below the risk table, **🔔 Alerts** lists every machine at high risk: its riskiest part and failure chance, the expected loss from the cascade, and the best action from the simulator (`factorymind/alerts.py`).
 
-Configure the channels with environment variables (locally in `.env`):
+- **Slack: automatic.** As soon as an analysis finds a high-risk machine, the alert goes to Slack, and the app shows **"✅ Alert sent to Slack at HH:MM"**. Each machine and component is alerted **once per dataset**, however many people open it. A failed send is shown with a **Retry** button.
+- **Email: on request.** **Send alert by email** delivers the same message.
+
+### Real-time alerts from streamed data
+
+`factorymind/stream.py` watches data **as it arrives**:
+1. `RiskMonitor.ingest()` takes new telemetry and error readings and keeps a rolling 48h window per machine.
+2. It re-scores the machines that got new data with the failure model.
+3. It raises an alert **the moment** a machine crosses into high risk. The alert includes the component, its failure chance, the drivers, the expected loss and the best action.
+
+**One alert per risk episode.** A machine that stays risky isn't alerted again. It re-arms once it drops back below high risk, but not within 6 hours of the last alert, so a machine hovering at the threshold can't flap.
+
+**Try it** by replaying a demo bundle hour by hour as if it were live:
+
+```bash
+uv run python scripts/stream_replay.py demo_bundles/comp2_failure_building.zip
+```
+
+- **Machine 90 / comp2** is flagged at **06:00 on 2015-05-19** (data time), a **day before** its real failure at 06:00 on 2015-05-20.
+- **Exactly one** Slack alert is sent.
+- `--dry-run` prints the alerts instead of sending them, and `--interval` sets the seconds between streamed hours.
+
+A production feed would publish readings to Pub/Sub and push them to a Cloud Run endpoint that calls `ingest()`. That's a follow-up ([#27](https://github.com/lpriya2760/factorymind/issues/27)).
+
+### Slack setup
+
+1. Go to https://api.slack.com/apps → **Create New App** → **From scratch**. Name it `FactoryMind` and pick your workspace.
+2. In the app's settings, open **Incoming Webhooks** and switch on **Activate Incoming Webhooks**.
+3. Click **Add New Webhook to Workspace**, choose a channel (for example `#factorymind-alerts`), and click **Allow**.
+4. Copy the webhook URL (`https://hooks.slack.com/services/…`). **Anyone with this URL can post to your channel; treat it like a password.**
+5. **Locally:** add `SLACK_WEBHOOK_URL=https://hooks.slack.com/services/…` to `.env` (git-ignored).
+6. **On Cloud Run:** store it in Secret Manager and let the service read it:
+
+   ```bash
+   gcloud services enable secretmanager.googleapis.com
+   ```
+
+   ```bash
+   printf '%s' 'https://hooks.slack.com/services/…' | gcloud secrets create factorymind-slack-webhook --data-file=-
+   ```
+
+   ```bash
+   gcloud secrets add-iam-policy-binding factorymind-slack-webhook --member="serviceAccount:<PROJECT_NUMBER>-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+   ```
+
+   Then run `./scripts/deploy.sh`. It attaches the secret automatically when it exists.
+
+### Email setup
 
 | Variable | Meaning |
 |---|---|
-| `SLACK_WEBHOOK_URL` | A Slack [incoming webhook](https://api.slack.com/messaging/webhooks) URL |
 | `ALERT_EMAIL_TO` | Recipients, comma-separated |
 | `ALERT_EMAIL_FROM` | Sender address (defaults to `SMTP_USER`) |
 | `SMTP_HOST`, `SMTP_PORT` | Mail server; port 587 (default) uses STARTTLS, 465 uses TLS |
-| `SMTP_USER`, `SMTP_PASSWORD` | Mail login. For Gmail, use an [app password](https://support.google.com/accounts/answer/185833) |
+| `SMTP_USER` | Mail login |
+| `SMTP_PASSWORD` | Mail password. For Gmail, use an [app password](https://support.google.com/accounts/answer/185833). On Cloud Run, store it in Secret Manager as `factorymind-smtp-password`. |
 | `ALERT_MIN_LEVEL` | `high` (default) or `medium` |
 
-Email needs a recipient, a sender and a host; either channel works on its own. If one channel fails, the other is still sent, and the error is shown and logged. On Cloud Run, export the variables before running `deploy.sh` and it passes them to the service.
+**Secrets never go into plain settings.** `deploy.sh` passes the non-secret variables above as normal settings, and the Slack webhook and SMTP password only through Secret Manager.
 
-**Tests** replace Slack and the mail server with fakes, so they run offline.
+**Tests** replace Slack and the mail server with fakes, so they run offline. This includes replaying all three demo bundles: one alert for the comp2 bundle, two for the two-machines bundle, and none for the healthy fleet.
 
 ## Costs and guardrails
 
