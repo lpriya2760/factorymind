@@ -52,4 +52,4 @@ fi
 
 echo "Done. Next, in two terminals:"
 echo "  uv run --group stream python scripts/monitor.py"
-echo "  uv run --group stream python scripts/replay_publisher.py --seconds-per-hour 1"
+echo "  uv run --group stream python scripts/replay_publisher.py"
