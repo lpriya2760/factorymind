@@ -4,7 +4,7 @@ import hashlib
 import json
 import logging
 from dataclasses import asdict, replace
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -218,6 +218,10 @@ with st.expander("About the failure model"):
 
 bundle_key = hashlib.sha256(b"".join(files.values())).hexdigest()[:16]
 
+# Alert times are shown in India Standard Time (Cloud Run's clock is UTC).
+IST = timezone(timedelta(hours=5, minutes=30), "IST")
+
+
 @st.cache_resource
 def slack_alert_state():
     """Shared by every visitor: which risks were already alerted, and failed sends to retry."""
@@ -248,14 +252,14 @@ if alert_config is not None:
             keys = {m.machine_id: (bundle_key, m.machine_id, m.top_component)
                     for m in alert.machines}
             due = [m for m in alert.machines if ledger.should_alert(keys[m.machine_id],
-                                                                       datetime.now())
+                                                                       datetime.now(IST))
                    and keys[m.machine_id] not in failures]
             if due:
                 try:
                     send_slack(Alert(machines=due, min_level=alert.min_level),
                                alert_config.slack_webhook_url)
                     for m in due:
-                        ledger.record(keys[m.machine_id], datetime.now())
+                        ledger.record(keys[m.machine_id], datetime.now(IST))
                     _log.info("Slack alert sent for machines %s", [m.machine_id for m in due])
                 except Exception as exc:  # noqa: BLE001 - shown and logged, then retryable
                     _log.warning("Slack alert failed: %s", exc)
@@ -271,7 +275,7 @@ if alert_config is not None:
                         st.rerun()
                 else:
                     sent_at = ledger.sent_at(key)
-                    st.success(f"✅ Alert sent to Slack at {sent_at:%H:%M} for machine "
+                    st.success(f"✅ Alert sent to Slack at {sent_at:%H:%M} IST for machine "
                                f"{m.machine_id} ({m.top_component} {alert_pct(m.failure_probability)} likely to "
                                "fail in the next 24h)." if sent_at else "Alert pending.")
         # Email stays a deliberate, button-triggered send.
