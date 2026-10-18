@@ -298,8 +298,10 @@ with st.container(border=True):
             st.session_state["replay_ticked"] = False
 
         at = timeline.hours[step]
-        st.progress((step + 1) / len(timeline),
-                    text=f"Hour {step + 1} of {len(timeline)} · data up to **{at:%Y-%m-%d %H:%M}**")
+        crossed = crossing is not None and step >= crossing.step
+        ui.replay_header(step, len(timeline), at, st.session_state["replay_playing"], crossed,
+                         crossing.step if crossing is not None else None,
+                         timeline.hours[0], timeline.hours[-1])
         machines = timeline.machines_at(step)
         watched = next(m for m in machines if m.machine_id == replay_machine)
 
@@ -310,35 +312,25 @@ with st.container(border=True):
             history = timeline.history(replay_machine, step) * 100
             history["threshold"] = threshold * 100
             st.line_chart(history, y_label="Failure chance (%)", x_label="Data time",
-                          height=260)
-            now = st.columns(4)
-            for col, c in zip(now, COMPONENTS):
-                col.metric(c, f"{watched.component_risk[c]:.1%}")
+                          height=260, color=["#0ea5a4", "#2563eb", "#7c3aed", "#d97706",
+                                             "#e5484d"])
+            ui.component_gauges({c: watched.component_risk[c] for c in COMPONENTS}, threshold)
         with right:
             st.markdown("**Fleet at this hour**")
-            st.dataframe(
-                pd.DataFrame([{"Risk": LEVEL_BADGES[m.risk_level], "Machine": m.machine_id,
-                               "Riskiest part": m.top_component if m.risk_level != "low" else "—",
-                               "Chance": m.max_risk * 100} for m in machines]),
-                hide_index=True, width="stretch", height=300,
-                column_config={"Chance": st.column_config.ProgressColumn(
-                    "Chance", min_value=0, max_value=100, format="%.1f%%")})
+            ui.fleet_list(machines, replay_machine, threshold)
 
         if crossing is None:
-            st.caption(f"Machine {replay_machine} stays below {threshold:.0%} for the whole "
+            ui.waiting(f"Machine {replay_machine} stays below {threshold:.0%} for the whole "
                        "replay, so no recommendation is triggered.")
             return
         if step < crossing.step:
-            st.caption(f"Recommendation appears when machine {replay_machine} reaches "
-                       f"{threshold:.0%}.")
+            ui.waiting(f"Watching machine {replay_machine}: the recommendation appears when any "
+                       f"part reaches {threshold:.0%}.")
             return
 
-        st.error(f"🚨 **Threshold crossed at {crossing.at:%Y-%m-%d %H:%M}**: machine "
-                 f"{replay_machine} {crossing.component} is "
-                 f"{'>99%' if crossing.probability > 0.99 else f'{crossing.probability:.0%}'} "
-                 "likely to fail in the next 24h."
-                 + (f" Why: {' · '.join(d.description for d in watched.top_drivers)}."
-                    if step == crossing.step and watched.top_drivers else ""))
+        ui.crossing_banner(crossing.at, replay_machine, crossing.component, crossing.probability,
+                           " · ".join(d.description for d in watched.top_drivers)
+                           if step == crossing.step and watched.top_drivers else "")
         frozen = tuple(files.items())
         then = analysis_until(frozen, crossing.at, tuple(sorted(assumptions.items())))
         best_then = then.interventions[replay_machine][0]
