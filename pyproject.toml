@@ -17,6 +17,9 @@ dependencies = [
 dev = [
     "pytest>=9.1.1",
 ]
+stream = [
+    "google-cloud-pubsub>=2.25",
+]
 
 [tool.uv]
 package = false
