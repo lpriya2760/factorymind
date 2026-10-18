@@ -354,7 +354,7 @@ FactoryMind can also watch a **stream** of sensor readings and raise an alert th
 replay_publisher ──► factorymind-telemetry ──► monitor ──► factorymind-alerts ──► BigQuery / Slack / email
 ```
 
-- **The publisher** sends the last 36 hours of telemetry and error readings, one message per reading, one simulated hour every 10 seconds (`--seconds-per-hour` changes it).
+- **The publisher** sends the last 36 hours of telemetry and error readings, one message per reading, one simulated hour every 2 seconds (`--seconds-per-hour` changes it).
 - **The monitor** re-runs the full analysis each time every machine has reported for the next hour. It ignores duplicate and out-of-order deliveries. When a machine first reaches high risk, it publishes a JSON alert with the riskiest part, expected loss, loss range and best action.
 
 On the `comp2_failure_building` demo, all machines stay green until **19 May 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99% and one alert fires: $22,623 expected loss, "Replace comp2, machine 47 covers".

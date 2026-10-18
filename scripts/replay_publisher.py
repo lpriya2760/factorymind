@@ -19,8 +19,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     add_common_args(parser)
-    parser.add_argument("--seconds-per-hour", type=float, default=10.0,
-                        help="real seconds per simulated hour (default 10)")
+    parser.add_argument("--seconds-per-hour", type=float, default=2.0,
+                        help="real seconds per simulated hour (default 2)")
     parser.add_argument("--topic", default=TELEMETRY_TOPIC)
     args = parser.parse_args()
 
