@@ -5,8 +5,13 @@ business data (schedule, inventory, orders) from factorymind.synthetic. A manife
 provenance and the scenario, including which failures happen in the 24h after the bundle ends
 (ground truth for the demo; the app ignores it).
 
+The public data is from 2015. Every timestamp is moved forward by whole days so each bundle ends
+on --end-date (its hour of day, and so every reading's spacing, unchanged). The model only uses
+durations, never the calendar, so the predictions are the same as on the original dates.
+
 Usage (after downloading the Kaggle dataset into data/raw/):
     uv run python scripts/make_demo_bundles.py [--raw data/raw] [--out demo_bundles] [--seed 7]
+                                               [--end-date 2026-10-18]
 """
 
 from __future__ import annotations
@@ -34,6 +39,7 @@ WINDOW = pd.Timedelta(days=30)
 HORIZON = pd.Timedelta(hours=24)  # the model predicts failures this far ahead
 LEAD = pd.Timedelta(hours=12)  # how long after the bundle ends the comp2 failure happens
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+END_DATE = "2026-10-18"  # the demo data ends on this day
 
 
 @dataclass
@@ -51,6 +57,8 @@ def main() -> None:
     parser.add_argument("--raw", type=Path, default=Path("data/raw"))
     parser.add_argument("--out", type=Path, default=Path("demo_bundles"))
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--end-date", default=END_DATE,
+                        help=f"the day each bundle's data ends (default {END_DATE})")
     args = parser.parse_args()
 
     raw = load_raw(args.raw)
@@ -63,13 +71,14 @@ def main() -> None:
     args.out.mkdir(exist_ok=True)
     for scenario in scenarios:
         machines = choose_machines(raw, scenario, rng)
-        files = build_bundle(raw, scenario, machines, args.seed)
+        shift = pd.Timestamp(args.end_date) - scenario.end.normalize()
+        files = build_bundle(raw, scenario, machines, args.seed, shift)
         write_bundle(args.out, scenario.name, files)
         report = analyze(files)  # raises if the bundle is invalid
         size = sum(len(b) for b in files.values())
         assert size < MAX_BUNDLE_BYTES, f"{scenario.name} is {size} bytes"
-        print(f"{scenario.name}: {len(report.machines)} machines, ends {scenario.end}, "
-              f"{size / 2**20:.1f} MB")
+        print(f"{scenario.name}: {len(report.machines)} machines, ends {scenario.end + shift} "
+              f"(originally {scenario.end}), {size / 2**20:.1f} MB")
 
 
 def load_raw(raw_dir: Path) -> dict[str, pd.DataFrame]:
@@ -177,7 +186,9 @@ def choose_machines(raw, scenario: Scenario, rng) -> list[int]:
     return sorted(chosen)
 
 
-def build_bundle(raw, scenario: Scenario, machines: list[int], seed: int) -> dict[str, bytes]:
+def build_bundle(raw, scenario: Scenario, machines: list[int], seed: int,
+                 shift: pd.Timedelta = pd.Timedelta(0)) -> dict[str, bytes]:
+    """The bundle's files, with every timestamp moved `shift` later."""
     start, end = scenario.end - WINDOW, scenario.end
 
     def rows(name, since=None):
@@ -195,10 +206,14 @@ def build_bundle(raw, scenario: Scenario, machines: list[int], seed: int) -> dic
         "maint": rows("maint"),  # full history, for "hours since component replaced"
         "machines": rows("machines"),
     }
+    for df in machine_tables.values():
+        if "datetime" in df:
+            df["datetime"] = df["datetime"] + shift
+    upcoming = failures_between(raw, end, end + HORIZON, machines)
+    start, end = start + shift, end + shift
     files = to_csv_bytes(machine_tables)
     files |= to_csv_bytes(generate_business_data(machine_tables["machines"], end, seed))
 
-    upcoming = failures_between(raw, end, end + HORIZON, machines)
     files["manifest.json"] = (json.dumps({
         "provenance": {**{t: "real" for t in machine_tables},
                        **{t: "synthetic" for t in ("production_schedule", "inventory", "orders")}},
@@ -209,10 +224,11 @@ def build_bundle(raw, scenario: Scenario, machines: list[int], seed: int) -> dic
             "as_of": end.strftime(DATE_FORMAT),
             "upcoming_failures": [
                 {"machineID": int(f.machineID), "comp": f.failure,
-                 "datetime": f.datetime.strftime(DATE_FORMAT)}
+                 "datetime": (f.datetime + shift).strftime(DATE_FORMAT)}
                 for f in upcoming.itertuples()
             ],
         },
+        "original_as_of": scenario.end.strftime(DATE_FORMAT),
         "generated_by": f"scripts/make_demo_bundles.py --seed {seed}",
     }, indent=2) + "\n").encode()
     return files

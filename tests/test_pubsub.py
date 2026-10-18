@@ -118,7 +118,7 @@ def test_duplicates_and_out_of_order_delivery_give_the_same_result(split, stream
 def test_unknown_event_type_is_rejected(split):
     monitor = LiveMonitor(split[0])
     with pytest.raises(ValueError):
-        monitor.ingest({"type": "weather", "machineID": 1, "datetime": "2015-05-19 00:00:00"})
+        monitor.ingest({"type": "weather", "machineID": 1, "datetime": "2026-10-18 00:00:00"})
 
 
 # --- end to end over a bus ------------------------------------------------------------------

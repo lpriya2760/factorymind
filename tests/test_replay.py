@@ -10,7 +10,7 @@ from factorymind.engine import analyze
 from factorymind.replay import files_until, risk_timeline
 
 DEMOS = Path(__file__).parent.parent / "demo_bundles"
-COMP2_CROSSES = pd.Timestamp("2015-05-19 06:00")  # the real failure is 24h later
+COMP2_CROSSES = pd.Timestamp("2026-10-18 06:00")  # the real failure is 24h later
 
 
 def bundle(name):
@@ -25,7 +25,7 @@ def comp2():
 
 def test_replays_the_last_hours_one_hour_at_a_time(comp2):
     assert len(comp2) == 48
-    assert comp2.hours[-1] == pd.Timestamp("2015-05-19 18:00")
+    assert comp2.hours[-1] == pd.Timestamp("2026-10-18 18:00")
     assert all(b - a == pd.Timedelta(hours=1) for a, b in zip(comp2.hours, comp2.hours[1:]))
     assert len(comp2.machines_at(0)) == 10
 

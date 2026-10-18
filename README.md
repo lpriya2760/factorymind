@@ -50,6 +50,8 @@ Tests run against the analysis engine's single entry point, `analyze(files, assu
 
 Each bundle's `manifest.json` records which tables are real or synthetic, and which failures actually happen in the 24h after the data ends. The app ignores that ground truth; it's there so you know what the demo should show.
 
+**Dates:** the public dataset is from 2015. Every timestamp is moved forward by whole days so each bundle ends on **18 Oct 2026** (`--end-date`), at its original hour of day. The readings and their spacing are unchanged, and the model uses only durations, never the calendar, so every prediction and figure is the same as on the original dates. `manifest.json` keeps the original end time (`original_as_of`).
+
 **Synthetic business data** (`factorymind/synthetic.py`) is generated from a seed, so the same seed always gives the same files:
 - Machines of the same model make the same product, so work can be rerouted between them.
 - Orders fall due 1–5 days after the data ends. Safety stock is 2–4 hours of production. By each due date, demand uses the stock above safety level plus 90–95% of what the machines can make. So normal running ships on time and keeps safety stock intact, while losing a machine for a shift eats into safety stock and can make orders late.
@@ -292,7 +294,7 @@ Below the risk table, **🔔 Alerts** lists every machine at high risk: its risk
 uv run python scripts/stream_replay.py demo_bundles/comp2_failure_building.zip
 ```
 
-- **Machine 90 / comp2** is flagged at **06:00 on 2015-05-19** (data time), a **day before** its real failure at 06:00 on 2015-05-20.
+- **Machine 90 / comp2** is flagged at **06:00 on 2026-10-18** (data time), a **day before** its real failure at 06:00 on 2026-10-19.
 - **Exactly one** Slack alert is sent.
 - `--dry-run` prints the alerts instead of sending them, and `--interval` sets the seconds between streamed hours.
 
@@ -344,7 +346,7 @@ The **Replay** section steps through the bundle's last hours of telemetry (48 by
 - **Threshold** (50% by default): when any component of the watched machine reaches it, playback pauses and the recommendation appears. That is the best action from re-analysing the data *up to that hour*, plus Gemini's checked recommendation.
 - **No lookahead:** the model's features only look back, so each replayed hour's risk is exactly what a prediction made then would say. A test checks this against `analyze()` on the data cut at that hour.
 
-On `comp2_failure_building`, machine 90's comp2 risk stays under 0.2% for 35 hours. Then, at **19 May 06:00**, it jumps to 99.8%: "Replace comp2, machine 47 covers", a net benefit of $16,361, a day before the real failure. Code: [`factorymind/replay.py`](factorymind/replay.py).
+On `comp2_failure_building`, machine 90's comp2 risk stays under 0.2% for 35 hours. Then, at **18 Oct 06:00**, it jumps to 99.8%: "Replace comp2, machine 47 covers", a net benefit of $16,361, a day before the real failure. Code: [`factorymind/replay.py`](factorymind/replay.py).
 
 ## Live monitoring over Pub/Sub
 
@@ -357,7 +359,7 @@ replay_publisher ──► factorymind-telemetry ──► monitor ──► fac
 - **The publisher** sends the last 36 hours of telemetry and error readings, one message per reading, one simulated hour every 2 seconds (`--seconds-per-hour` changes it).
 - **The monitor** re-runs the full analysis each time every machine has reported for the next hour. It ignores duplicate and out-of-order deliveries. When a machine first reaches high risk, it publishes a JSON alert with the riskiest part, expected loss, loss range and best action.
 
-On the `comp2_failure_building` demo, all machines stay green until **19 May 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99% and one alert fires: $22,623 expected loss, "Replace comp2, machine 47 covers".
+On the `comp2_failure_building` demo, all machines stay green until **18 Oct 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99% and one alert fires: $22,623 expected loss, "Replace comp2, machine 47 covers".
 
 **Try it in the app:** under the demo bundles, pick a bundle and click **📡 Start live stream**. The app publishes the bundle's last hours (36 by default) to `factorymind-telemetry`, one hour every 2 seconds. It reads them back through a subscription of its own, then re-runs the prediction, cascade and actions on the data received so far as each hour arrives. On the comp2 bundle, machine 90 turns 🔴 at hour 30, and the Slack alert goes out on its own.
 

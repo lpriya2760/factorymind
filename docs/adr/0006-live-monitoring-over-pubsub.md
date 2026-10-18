@@ -25,7 +25,7 @@ replay_publisher ──► factorymind-telemetry ──► monitor ──► fac
 
 ## Result on the demo data
 
-Replaying the last 36 hours of `comp2_failure_building`: all ten machines stay green until **2015-05-19 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99%, and the monitor publishes one alert: expected loss $22,623 (range $22,016–$23,349), best action "Replace comp2, machine 47 covers". Each hour's analysis takes about 0.6s, so the publisher's default of 2 seconds per hour leaves headroom.
+Replaying the last 36 hours of `comp2_failure_building`: all ten machines stay green until **2026-10-18 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99%, and the monitor publishes one alert: expected loss $22,623 (range $22,016–$23,349), best action "Replace comp2, machine 47 covers". Each hour's analysis takes about 0.6s, so the publisher's default of 2 seconds per hour leaves headroom.
 
 ## Consequences
 
