@@ -177,6 +177,17 @@ If it keeps running, its degrading quality costs $10,890 of excess scrap. Expect
 
 **Why it's built this way:** see [ADR 0002](docs/adr/0002-cascade-simulation.md). It covers each modelling choice and the two demo-data fixes the cascade needed.
 
+### Loss range (Monte Carlo)
+
+Next to the expected loss, the cascade shows a **P10/P50/P90 range** from 1,000 seeded Monte Carlo draws. Each draw decides whether the machine fails (with the predicted chance) and, if it does, in which hour of the next 24h. Machine 90 reads **"$21,999–$24,862, most likely $24,374"**: an early failure costs less because the repair stops its scrap sooner.
+
+- **Reproducible:** the same data and seed give the same range.
+- **Honest percentiles:** each one is an outcome that actually occurs, not an interpolation between "fails" and "keeps running".
+- **Rare failures:** when a machine fails in fewer than 1 in 10 weeks, all three percentiles are its keeps-running loss. The app then explains that the expected loss is higher because of the small chance of an expensive failure.
+- **Fast:** it adds about 0.1–0.2s to an analysis.
+
+The expected loss, the intervention ranking and Gemini's answers are unchanged. See [ADR 0005](docs/adr/0005-monte-carlo-loss-range.md).
+
 ## What to do: the intervention simulator
 
 For each machine, FactoryMind evaluates five options. Each one **re-runs the cascade with changed inputs** (`factorymind/interventions.py`):
@@ -258,6 +269,72 @@ Below the recommendation, a chat answers follow-up questions about the uploaded 
 - **It checks every number.** Each figure must come from a tool result anywhere in the conversation. It gets one rewrite if not, and anything still unverified is flagged.
 - **It says when it can't answer.** For a scenario the tools don't simulate (such as waiting until the weekend), it starts with "I can't answer that from the available data", says what's missing, and gives the closest figures the tools do have.
 - **It starts fresh when the data changes.** A new bundle or changed assumptions start a new conversation.
+
+## Slack and email alerts
+
+Below the risk table, **🔔 Alerts** lists every machine at high risk: its riskiest part and failure chance, the expected loss from the cascade, and the best action from the simulator (`factorymind/alerts.py`).
+
+- **Slack: automatic.** As soon as an analysis finds a high-risk machine, the alert goes to Slack, and the app shows **"✅ Alert sent to Slack at HH:MM"**. Each machine and component is alerted **once per dataset**, however many people open it. A failed send is shown with a **Retry** button.
+- **Email: on request.** **Send alert by email** delivers the same message.
+
+### Real-time alerts from streamed data
+
+`factorymind/stream.py` watches data **as it arrives**:
+1. `RiskMonitor.ingest()` takes new telemetry and error readings and keeps a rolling 48h window per machine.
+2. It re-scores the machines that got new data with the failure model.
+3. It raises an alert **the moment** a machine crosses into high risk. The alert includes the component, its failure chance, the drivers, the expected loss and the best action.
+
+**One alert per risk episode.** A machine that stays risky isn't alerted again. It re-arms once it drops back below high risk, but not within 6 hours of the last alert, so a machine hovering at the threshold can't flap.
+
+**Try it** by replaying a demo bundle hour by hour as if it were live:
+
+```bash
+uv run python scripts/stream_replay.py demo_bundles/comp2_failure_building.zip
+```
+
+- **Machine 90 / comp2** is flagged at **06:00 on 2015-05-19** (data time), a **day before** its real failure at 06:00 on 2015-05-20.
+- **Exactly one** Slack alert is sent.
+- `--dry-run` prints the alerts instead of sending them, and `--interval` sets the seconds between streamed hours.
+
+A production feed would publish readings to Pub/Sub and push them to a Cloud Run endpoint that calls `ingest()`. That's a follow-up ([#27](https://github.com/lpriya2760/factorymind/issues/27)).
+
+### Slack setup
+
+1. Go to https://api.slack.com/apps → **Create New App** → **From scratch**. Name it `FactoryMind` and pick your workspace.
+2. In the app's settings, open **Incoming Webhooks** and switch on **Activate Incoming Webhooks**.
+3. Click **Add New Webhook to Workspace**, choose a channel (for example `#factorymind-alerts`), and click **Allow**.
+4. Copy the webhook URL (`https://hooks.slack.com/services/…`). **Anyone with this URL can post to your channel; treat it like a password.**
+5. **Locally:** add `SLACK_WEBHOOK_URL=https://hooks.slack.com/services/…` to `.env` (git-ignored).
+6. **On Cloud Run:** store it in Secret Manager and let the service read it:
+
+   ```bash
+   gcloud services enable secretmanager.googleapis.com
+   ```
+
+   ```bash
+   printf '%s' 'https://hooks.slack.com/services/…' | gcloud secrets create factorymind-slack-webhook --data-file=-
+   ```
+
+   ```bash
+   gcloud secrets add-iam-policy-binding factorymind-slack-webhook --member="serviceAccount:<PROJECT_NUMBER>-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+   ```
+
+   Then run `./scripts/deploy.sh`. It attaches the secret automatically when it exists.
+
+### Email setup
+
+| Variable | Meaning |
+|---|---|
+| `ALERT_EMAIL_TO` | Recipients, comma-separated |
+| `ALERT_EMAIL_FROM` | Sender address (defaults to `SMTP_USER`) |
+| `SMTP_HOST`, `SMTP_PORT` | Mail server; port 587 (default) uses STARTTLS, 465 uses TLS |
+| `SMTP_USER` | Mail login |
+| `SMTP_PASSWORD` | Mail password. For Gmail, use an [app password](https://support.google.com/accounts/answer/185833). On Cloud Run, store it in Secret Manager as `factorymind-smtp-password`. |
+| `ALERT_MIN_LEVEL` | `high` (default) or `medium` |
+
+**Secrets never go into plain settings.** `deploy.sh` passes the non-secret variables above as normal settings, and the Slack webhook and SMTP password only through Secret Manager.
+
+**Tests** replace Slack and the mail server with fakes, so they run offline. This includes replaying all three demo bundles: one alert for the comp2 bundle, two for the two-machines bundle, and none for the healthy fleet.
 
 ## Costs and guardrails
 

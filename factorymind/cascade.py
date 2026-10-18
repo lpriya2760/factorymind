@@ -21,6 +21,9 @@ count as a day) × penalty_multiplier.
 
 where p is the probability that any component fails in the next 24h, and excess scrap is this
 machine's scrap above the normal BASE_RATE (normal scrap isn't a loss caused by anything).
+
+The expected loss uses one failure time. loss_range() adds the spread: seeded Monte Carlo draws
+of whether and when in the 24h window the machine fails, summarised as P10/P50/P90 (ADR 0005).
 """
 
 from __future__ import annotations
@@ -35,7 +38,9 @@ from factorymind.quality import BASE_RATE
 from factorymind.report import Cascade, LateOrder, QualityProjection, ScenarioOutcome
 
 CASCADE_HORIZON_H = 168  # simulate a week ahead
+PREDICTION_WINDOW_H = 24  # the failure model predicts a failure within this window
 FAILURE_AT_H = 12  # middle of the 24h prediction window
+MC_SAMPLES = 1000  # Monte Carlo draws behind the loss range
 
 
 def simulate_orders(orders: pd.DataFrame, on_hand: float, safety_stock: float,
@@ -124,8 +129,9 @@ def prepare_plant(tables: dict[str, pd.DataFrame], as_of: pd.Timestamp,
 def run_scenarios(plant: Plant, machine_id: int, p: float,
                   production: dict[int, np.ndarray] | None = None,
                   excess_scrap: np.ndarray | None = None,
+                  failure_at: int = FAILURE_AT_H,
                   ) -> tuple[ScenarioOutcome, ScenarioOutcome, float]:
-    """Simulate `machine_id` failing at FAILURE_AT_H (probability p) or not.
+    """Simulate `machine_id` failing at `failure_at` (probability p) or not.
 
     `production` (good units per hour of each machine making the product) and `excess_scrap`
     (USD per hour attributed to this machine) default to everyone running as they are; the
@@ -138,7 +144,7 @@ def run_scenarios(plant: Plant, machine_id: int, p: float,
     if excess_scrap is None:
         excess_scrap = plant.excess_scrap(machine_id)
     repair_h = a["repair_hours"]
-    down = slice(FAILURE_AT_H, min(CASCADE_HORIZON_H, FAILURE_AT_H + math.ceil(repair_h)))
+    down = slice(failure_at, min(CASCADE_HORIZON_H, failure_at + math.ceil(repair_h)))
 
     def outcome(fails: bool) -> ScenarioOutcome:
         late, breach = [], None
@@ -172,16 +178,55 @@ def run_scenarios(plant: Plant, machine_id: int, p: float,
     return if_failure, if_no_failure, expected
 
 
-def build_cascades(plant: Plant, failure_probability: dict[int, float]) -> dict[int, Cascade]:
-    """The do-nothing cascade for every machine."""
+def loss_range(plant: Plant, machine_id: int, p: float, seed: int = 0,
+               production: dict[int, np.ndarray] | None = None,
+               excess_scrap: np.ndarray | None = None,
+               samples: int = MC_SAMPLES,
+               no_failure_loss: float | None = None) -> tuple[float, float, float]:
+    """P10, P50 and P90 of the week's loss, from `samples` seeded Monte Carlo draws.
+
+    Each draw decides whether the machine fails (with probability p) and, if it does, in which
+    hour of the 24h prediction window (each hour equally likely); every other input is the same
+    as the expected-value cascade. Percentiles use the inverted-CDF method, so each one is a loss
+    that actually occurs in a draw rather than an interpolation between "fails" and "keeps
+    running".
+
+    A failure's loss depends only on its hour, so each drawn hour is simulated once. When fewer
+    than 10% of draws fail, every percentile is the keeps-running loss whichever way the failure
+    losses fall, so none are simulated. `no_failure_loss` skips re-simulating that scenario when
+    the caller already has it.
+    """
+    p = min(max(p, 0.0), 1.0)
+    rng = np.random.default_rng([seed, machine_id])
+    fails = rng.random(samples) < p
+    when = rng.integers(0, PREDICTION_WINDOW_H, samples)
+    if no_failure_loss is None:
+        no_failure_loss = run_scenarios(plant, machine_id, p, production, excess_scrap)[1].total_loss
+    if fails.sum() * 10 < samples:
+        return (round(float(no_failure_loss), 2),) * 3
+    fail_loss = np.zeros(PREDICTION_WINDOW_H)
+    for h in np.unique(when[fails]):
+        fail_loss[h] = run_scenarios(plant, machine_id, p, production, excess_scrap,
+                                     failure_at=int(h))[0].total_loss
+    losses = np.where(fails, fail_loss[when], no_failure_loss)
+    p10, p50, p90 = np.percentile(losses, [10, 50, 90], method="inverted_cdf")
+    return round(float(p10), 2), round(float(p50), 2), round(float(p90), 2)
+
+
+def build_cascades(plant: Plant, failure_probability: dict[int, float],
+                   seed: int = 0) -> dict[int, Cascade]:
+    """The do-nothing cascade for every machine, with its Monte Carlo loss range."""
     out = {}
     for machine_id, p in failure_probability.items():
         if_failure, if_no_failure, expected = run_scenarios(plant, machine_id, p)
+        p10, p50, p90 = loss_range(plant, machine_id, p, seed,
+                                   no_failure_loss=if_no_failure.total_loss)
         repair_h = plant.assumptions["repair_hours"]
         out[machine_id] = Cascade(
             product=plant.product[machine_id], failure_probability=round(p, 4),
             failure_at_hours=FAILURE_AT_H, downtime_hours=repair_h,
             lost_units=round(plant.units[machine_id] * repair_h, 1),
             if_failure=if_failure, if_no_failure=if_no_failure, expected_loss=expected,
+            loss_p10=p10, loss_p50=p50, loss_p90=p90, loss_samples=MC_SAMPLES,
         )
     return out

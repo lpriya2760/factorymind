@@ -53,7 +53,7 @@ def analyze(
     plant = prepare_plant(bundle.tables, as_of=bundle.tables["telemetry"]["datetime"].max(),
                           quality=week, assumptions=assumptions_used)
     cascades = build_cascades(
-        plant, {m.machine_id: sum(m.component_risk.values()) for m in summaries})
+        plant, {m.machine_id: sum(m.component_risk.values()) for m in summaries}, seed)
 
     return AnalysisReport(
         machines=summaries,

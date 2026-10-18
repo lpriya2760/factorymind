@@ -3,7 +3,8 @@
 import hashlib
 import json
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -13,10 +14,16 @@ from dotenv import load_dotenv
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind import quality
 from factorymind.agent import Chat, recommend
+from factorymind.alerts import (Alert, AlertConfig, build_alert, format_email, send_alert,
+                                send_slack)
+from factorymind.alerts import _pct as alert_pct
+from factorymind.alerts import subject as alert_subject
 from factorymind.assumptions import ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS
-from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H
+from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H, MC_SAMPLES, PREDICTION_WINDOW_H
 from factorymind.engine import DEFAULT_QUALITY_HORIZON_H, analyze
 from factorymind.predict import MODEL_DIR
+from factorymind.stream import AlertLedger
+from factorymind import ui
 
 # Local development reads GOOGLE_API_KEY from .env; Cloud Run uses Vertex AI settings instead.
 load_dotenv(Path(__file__).with_name(".env"))
@@ -30,11 +37,10 @@ if not _log.handlers:  # Streamlit re-runs this script on every interaction
     _log.addHandler(_handler)
 
 st.set_page_config(page_title="FactoryMind", page_icon="🏭", layout="wide")
-st.title("FactoryMind")
-st.caption(
-    "Predict machine failures, trace their cascade to quality, inventory and orders, "
-    "and find the smallest action that prevents the largest loss."
-)
+ui.inject_css()
+ui.hero()
+ui.section("upload", "Analyse your plant",
+           "Upload your own data, or try a demo bundle with real sensor data.")
 
 uploads = st.file_uploader(
     f"Upload a bundle: the {len(TABLES)} CSV files (or one .zip), plus an optional manifest.json. "
@@ -113,6 +119,9 @@ elif st.session_state.get("demo") in demos:
                "analyse them instead.")
 else:
     st.info("Upload a bundle, or pick a demo bundle above, to start.")
+    ui.how_it_works()
+    ui.features()
+    ui.footer()
     st.stop()
 
 @st.cache_data(show_spinner="Analysing…", max_entries=8)
@@ -144,7 +153,20 @@ def synthetic_badge(*tables: str) -> str:
             if any(report.data_provenance.get(t) == "synthetic" for t in tables) else "")
 COMPONENTS = ["comp1", "comp2", "comp3", "comp4"]
 
-st.subheader(f"Failure risk in the next 24h ({len(report.machines)} machines)")
+high_count = sum(m.risk_level == "high" for m in report.machines)
+total_loss = sum(c.expected_loss for c in report.cascade.values())
+best_saving = max((o[0].net_benefit for o in report.interventions.values()), default=0.0)
+ui.kpis([
+    ("navy", "Machines analysed", f"{len(report.machines)}", "failure risk for the next 24h"),
+    ("red" if high_count else "teal", "High risk", f"{high_count}",
+     "need attention now" if high_count else "nothing urgent"),
+    ("amber", "Expected loss this week", f"${total_loss:,.0f}", "across every machine, if nothing is done"),
+    ("teal", "Best single action saves", f"${max(best_saving, 0):,.0f}",
+     "net of its own cost"),
+])
+
+ui.section("pulse", f"Failure risk in the next 24h ({len(report.machines)} machines)",
+           "Riskiest first. Each component's chance of failing, and why.")
 high = [m for m in report.machines if m.risk_level == "high"]
 if high:
     st.error("  \n".join(
@@ -194,7 +216,85 @@ with st.expander("About the failure model"):
         "anomaly, so these held-out scores are higher than you'd expect in a real plant."
     )
 
-st.subheader("Machine detail")
+bundle_key = hashlib.sha256(b"".join(files.values())).hexdigest()[:16]
+
+# Alert times are shown in India Standard Time (Cloud Run's clock is UTC).
+IST = timezone(timedelta(hours=5, minutes=30), "IST")
+
+
+@st.cache_resource
+def slack_alert_state():
+    """Shared by every visitor: which risks were already alerted, and failed sends to retry."""
+    return AlertLedger(), {}
+
+
+ui.section("bell", "Alerts", "Tell the team on Slack or email which machines need action.",
+           ui.AMBER)
+try:
+    alert_config = AlertConfig.from_env()
+except ValueError as exc:
+    st.error(f"Alert settings are invalid: {exc}")
+    alert_config = None
+if alert_config is not None:
+    alert = build_alert(report, alert_config.min_level)
+    if alert is None:
+        st.caption(f"No machine is at {alert_config.min_level} risk, so there's nothing to alert.")
+    else:
+        with st.expander(f"Alert preview: {alert_subject(alert)}"):
+            st.text(format_email(alert, alert_config.email_from or "factorymind",
+                                 alert_config.email_to or ["(no recipients)"]).get_content())
+        # Slack: sent automatically, once per dataset, machine and component, for every visitor.
+        if not alert_config.slack_enabled:
+            st.caption("Set `SLACK_WEBHOOK_URL` to send alerts to Slack automatically "
+                       "(see the README's Slack setup).")
+        else:
+            ledger, failures = slack_alert_state()
+            keys = {m.machine_id: (bundle_key, m.machine_id, m.top_component)
+                    for m in alert.machines}
+            due = [m for m in alert.machines if ledger.should_alert(keys[m.machine_id],
+                                                                       datetime.now(IST))
+                   and keys[m.machine_id] not in failures]
+            if due:
+                try:
+                    send_slack(Alert(machines=due, min_level=alert.min_level),
+                               alert_config.slack_webhook_url)
+                    for m in due:
+                        ledger.record(keys[m.machine_id], datetime.now(IST))
+                    _log.info("Slack alert sent for machines %s", [m.machine_id for m in due])
+                except Exception as exc:  # noqa: BLE001 - shown and logged, then retryable
+                    _log.warning("Slack alert failed: %s", exc)
+                    for m in due:
+                        failures[keys[m.machine_id]] = str(exc)
+            for m in alert.machines:
+                key = keys[m.machine_id]
+                if key in failures:
+                    st.error(f"Couldn't send the Slack alert for machine {m.machine_id}: "
+                             f"{failures[key]}")
+                    if st.button("Retry sending to Slack", key=f"retry-{m.machine_id}"):
+                        failures.pop(key, None)
+                        st.rerun()
+                else:
+                    sent_at = ledger.sent_at(key)
+                    st.success(f"✅ Alert sent to Slack at {sent_at:%H:%M} IST for machine "
+                               f"{m.machine_id} ({m.top_component} {alert_pct(m.failure_probability)} likely to "
+                               "fail in the next 24h)." if sent_at else "Alert pending.")
+        # Email stays a deliberate, button-triggered send.
+        if alert_config.email_enabled:
+            email_only = replace(alert_config, slack_webhook_url=None)
+            sent = st.session_state.setdefault("emails_sent", set())
+            alert_key = (bundle_key, tuple(sorted(assumptions.items())))
+            if alert_key in sent:
+                st.caption("✅ Email already sent for this data and these assumptions.")
+            elif st.button("Send alert by email", key="send-email"):
+                with st.spinner("Sending…"):
+                    error = send_alert(alert, email_only).get("email")
+                if error:
+                    st.error(f"Couldn't send the email: {error}")
+                else:
+                    sent.add(alert_key)
+                    st.success("Email sent.")
+
+ui.section("gear", "Machine detail", "Pick a machine to see its quality, cascade and options.")
 by_id = {m.machine_id: m for m in report.machines}
 machine_id = st.selectbox(
     "Machine", list(by_id),
@@ -202,7 +302,7 @@ machine_id = st.selectbox(
 )
 st.slider("Hours ahead", min_value=6, max_value=168, step=6, key="horizon")
 
-st.markdown("#### Quality if it keeps running")
+ui.section("drop", "Quality if it keeps running", "Projected defect rate and scrap cost.")
 q = report.quality[machine_id]
 horizon = q.horizon_hours[-1]
 now_col, later_col, scrap_col = st.columns(3)
@@ -251,7 +351,8 @@ with st.expander("How quality is projected"):
         hide_index=True, width="stretch",
     )
 
-st.markdown("#### What a failure would cause")
+ui.section("cascade", "What a failure would cause",
+           "Machine → quality → inventory → orders → money, over the next week.", ui.RED)
 c = report.cascade[machine_id]
 f, ok = c.if_failure, c.if_no_failure
 p = c.failure_probability
@@ -288,6 +389,26 @@ with chain[4].container(border=True):
     st.metric("Expected loss", f"${c.expected_loss:,.0f}")
     st.caption(f"\\${f.total_loss:,.0f} if it fails · \\${ok.total_loss:,.0f} if not, "
                f"weighted by the {p_text} failure chance")
+    if c.loss_p10 == c.loss_p90:
+        st.caption(f"Range: \\${c.loss_p50:,.0f} in at least 9 of 10 simulated weeks")
+    else:
+        st.caption(f"Range: \\${c.loss_p10:,.0f}–\\${c.loss_p90:,.0f}, "
+                   f"most likely \\${c.loss_p50:,.0f}")
+
+if c.loss_p10 == c.loss_p90 and c.expected_loss > c.loss_p90:
+    range_note = (
+        f"In at least {c.loss_samples * 9 // 10:,} of {c.loss_samples:,} simulated weeks it "
+        f"keeps running and "
+        f"loses \\${c.loss_p50:,.0f}, so P10, P50 and P90 are all that figure. The expected loss is higher because the {p_text} chance "
+        f"of a failure would cost \\${f.total_loss:,.0f}.")
+elif c.loss_p10 == c.loss_p90:
+    range_note = f"Every percentile is \\${c.loss_p50:,.0f}: the outcome barely varies."
+else:
+    range_note = (
+        f"Across {c.loss_samples:,} simulated weeks, drawing whether and when in the next 24h it "
+        f"fails: **P10 \\${c.loss_p10:,.0f} · P50 \\${c.loss_p50:,.0f} · "
+        f"P90 \\${c.loss_p90:,.0f}**. One week in ten loses more than \\${c.loss_p90:,.0f}.")
+st.markdown("**Loss range (Monte Carlo):** " + range_note)
 
 def scenario_column(o):
     return [str(len(o.late_orders)), breach_text(o.inventory_breach_hours).capitalize()] + [
@@ -332,12 +453,17 @@ with st.expander("How the cascade is simulated"):
         "**Loss if it fails** = downtime + repair (part and labour) + penalties + excess scrap. "
         "**Loss if it keeps running** = penalties + excess scrap. **Expected loss** weights "
         "them by the failure chance. Excess scrap is scrap above the normal "
-        f"{quality.BASE_RATE:.1%} defect rate."
+        f"{quality.BASE_RATE:.1%} defect rate.\n\n"
+        f"**Loss range:** {MC_SAMPLES:,} seeded Monte Carlo draws. Each draw decides whether the "
+        f"machine fails (with the predicted chance) and, if so, in which hour of the next "
+        f"{PREDICTION_WINDOW_H}h (each equally likely), then re-runs the same week. P10/P50/P90 "
+        "are the 10th, 50th and 90th percentile losses, each one an outcome that actually occurs "
+        "in a draw. The same data and seed always give the same range."
     )
     st.caption("Costs use the plant assumptions in the sidebar: " + ", ".join(
         f"{k.replace('_', ' ')} {v:g}" for k, v in report.assumptions_used.items()))
 
-st.markdown("#### What to do about it")
+ui.section("sliders", "What to do about it", "Every action re-simulated and ranked by net benefit.")
 options = report.interventions[machine_id]
 best = options[0]
 if best.lever == "do_nothing":
@@ -396,8 +522,7 @@ def gemini_unavailable(exc: Exception) -> None:
     st.error("Gemini is busy right now (overloaded or over quota). Please try again in a minute."
              if busy else f"Gemini couldn't answer right now: {exc}")
 
-st.markdown("#### 🤖 Gemini's recommendation")
-bundle_key = hashlib.sha256(b"".join(files.values())).hexdigest()[:16]
+ui.section("spark", "Gemini's recommendation", "An AI explanation, with every figure checked.")
 recs = st.session_state.setdefault("recommendations", {})
 rec_key = (bundle_key, machine_id, tuple(sorted(assumptions.items())))
 if st.button("Ask Gemini what to do", key=f"ask-{machine_id}", type="primary"):
@@ -427,7 +552,7 @@ else:
             st.markdown(f"**`{call.name}({args})`**")
             st.json(call.result, expanded=False)
 
-st.markdown("#### 💬 Ask FactoryMind")
+ui.section("chat", "Ask FactoryMind", "Follow-up questions, answered from the same analysis.")
 # One conversation per bundle and set of assumptions: if either changes, the data did too.
 chat_key = (bundle_key, tuple(sorted(assumptions.items())))
 if st.session_state.get("chat_key") != chat_key:
@@ -488,3 +613,5 @@ if question:
 if chat_log and st.button("New conversation"):
     st.session_state.pop("chat_key")
     st.rerun()
+
+ui.footer()
