@@ -15,7 +15,7 @@ import json
 from stream_common import add_common_args, project_id, read_bundle, status_line
 
 from factorymind.alerts import AlertConfig, send_alert
-from factorymind.stream import (ALERTS_TOPIC, MONITOR_SUBSCRIPTION, LiveMonitor, PubSubBus,
+from factorymind.pubsub import (ALERTS_TOPIC, MONITOR_SUBSCRIPTION, LiveMonitor, PubSubBus,
                                 alert_message, decode, encode, split_bundle)
 
 

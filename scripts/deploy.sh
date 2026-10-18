@@ -12,13 +12,20 @@ PROJECT="$(gcloud config get-value project 2>/dev/null)"
 cd "$(dirname "$0")/.."
 uv export --no-dev --no-hashes --no-header --quiet -o requirements.txt
 
-# Gemini through Vertex AI, plus any Slack/email alert settings exported in this shell.
+# Gemini through Vertex AI, plus any non-secret alert settings exported in this shell.
 # "^|^" makes "|" the separator, so comma-separated values such as ALERT_EMAIL_TO survive.
 ENV_VARS="^|^GOOGLE_GENAI_USE_VERTEXAI=TRUE|GOOGLE_CLOUD_PROJECT=${PROJECT}|GOOGLE_CLOUD_LOCATION=global"
-for name in SLACK_WEBHOOK_URL ALERT_EMAIL_TO ALERT_EMAIL_FROM ALERT_MIN_LEVEL \
-            SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASSWORD; do
+for name in ALERT_EMAIL_TO ALERT_EMAIL_FROM ALERT_MIN_LEVEL SMTP_HOST SMTP_PORT SMTP_USER; do
   if [[ -n "${!name:-}" ]]; then
     ENV_VARS+="|${name}=${!name}"
+  fi
+done
+
+# Secrets come from Secret Manager, never plain settings: attach each one that exists.
+SECRETS=""
+for pair in SLACK_WEBHOOK_URL=factorymind-slack-webhook SMTP_PASSWORD=factorymind-smtp-password; do
+  if gcloud secrets describe "${pair#*=}" --project "$PROJECT" >/dev/null 2>&1; then
+    SECRETS+="${SECRETS:+,}${pair}:latest"
   fi
 done
 
@@ -31,4 +38,5 @@ gcloud run deploy "$SERVICE" \
   --memory 1Gi \
   --session-affinity \
   --allow-unauthenticated \
-  --set-env-vars "${ENV_VARS}"
+  --set-env-vars "${ENV_VARS}" \
+  ${SECRETS:+--set-secrets "$SECRETS"}

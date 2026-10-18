@@ -3,7 +3,8 @@
 import hashlib
 import json
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -13,12 +14,16 @@ from dotenv import load_dotenv
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind import quality
 from factorymind.agent import Chat, recommend
-from factorymind.alerts import AlertConfig, build_alert, format_email, send_alert
+from factorymind.alerts import (Alert, AlertConfig, build_alert, format_email, send_alert,
+                                send_slack)
+from factorymind.alerts import _pct as alert_pct
 from factorymind.alerts import subject as alert_subject
 from factorymind.assumptions import ASSUMPTION_INFO, DEFAULT_ASSUMPTIONS
 from factorymind.cascade import CASCADE_HORIZON_H, FAILURE_AT_H, MC_SAMPLES, PREDICTION_WINDOW_H
 from factorymind.engine import DEFAULT_QUALITY_HORIZON_H, analyze
-from factorymind.predict import MODEL_DIR
+from factorymind.predict import HIGH_RISK, MODEL_DIR
+from factorymind.replay import DEFAULT_REPLAY_H, files_until, risk_timeline
+from factorymind.stream import AlertLedger
 from factorymind import ui
 
 # Local development reads GOOGLE_API_KEY from .env; Cloud Run uses Vertex AI settings instead.
@@ -193,6 +198,184 @@ with st.expander("About the failure model"):
 
 bundle_key = hashlib.sha256(b"".join(files.values())).hexdigest()[:16]
 
+def gemini_unavailable(exc: Exception) -> None:
+    """Explain a failed Gemini call in plain words; keep the details in the log."""
+    logging.getLogger("factorymind.app").warning("Gemini call failed: %s", exc)
+    busy = any(code in str(exc) for code in ("429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE"))
+    st.error("Gemini is busy right now (overloaded or over quota). Please try again in a minute."
+             if busy else f"Gemini couldn't answer right now: {exc}")
+
+
+def show_recommendation(rec) -> None:
+    with st.container(border=True):
+        st.markdown(rec.text.replace("$", "\\$"))
+    if rec.unverified_numbers:
+        st.warning("Couldn't verify these figures against the tool results: "
+                   + ", ".join(rec.unverified_numbers))
+    else:
+        st.caption(f"✅ Every figure was checked against the tool results"
+                   f"{' after one rewrite' if rec.retried else ''} · {rec.model}"
+                   f"{' · ⚡ cached answer, no new Gemini call' if rec.cached else ''}")
+    with st.expander(f"Tools Gemini used ({len(rec.tool_calls)})"):
+        for call in rec.tool_calls:
+            args = ", ".join(f"{k}={v}" for k, v in call.args.items())
+            st.markdown(f"**`{call.name}({args})`**")
+            st.json(call.result, expanded=False)
+
+
+# --- Replay ---------------------------------------------------------------------------------------
+
+@st.cache_resource(max_entries=4)
+def replay_timeline(files: tuple[tuple[str, bytes], ...], hours: int):
+    return risk_timeline(dict(files), hours)
+
+
+@st.cache_data(show_spinner="Analysing the plant as it was then…", max_entries=8)
+def analysis_until(files: tuple[tuple[str, bytes], ...], at: pd.Timestamp,
+                   assumptions: tuple[tuple[str, float], ...]):
+    return analyze(files_until(dict(files), at), dict(assumptions))
+
+
+REPLAY_SPEEDS = {"1× (1 hour/s)": 1, "2×": 2, "4×": 4, "8×": 8}
+
+ui.section("clock", "Replay the data as if it were live",
+           "Step through the last hours of telemetry and watch the risk change. When the chosen "
+           "machine crosses the threshold, the recommendation appears.")
+with st.container(border=True):
+    settings = st.columns([1, 1, 1, 1])
+    replay_hours = settings[0].number_input("Hours to replay", min_value=6, max_value=168,
+                                            value=DEFAULT_REPLAY_H, step=6, key="replay_hours")
+    timeline = replay_timeline(tuple(files.items()), int(replay_hours))
+    # Default to the machine that ends riskiest: the one with a story to tell.
+    end_order = [m.machine_id for m in timeline.machines_at(len(timeline) - 1)]
+    replay_machine = settings[1].selectbox("Machine to watch", end_order, key="replay_machine",
+                                           format_func=lambda i: f"Machine {i}")
+    threshold = settings[2].slider("Threshold (failure chance)", 0.05, 0.95, HIGH_RISK, 0.05,
+                                   key="replay_threshold",
+                                   help="The recommendation appears once any component of the "
+                                        "watched machine reaches this chance of failing in 24h.")
+    speed = REPLAY_SPEEDS[settings[3].selectbox("Speed", list(REPLAY_SPEEDS), key="replay_speed")]
+    pause_on_cross = st.checkbox("Pause when the threshold is crossed", value=True,
+                                 key="replay_pause_on_cross")
+
+    # Start again whenever what is being replayed changes.
+    replay_key = (bundle_key, int(replay_hours), replay_machine, threshold)
+    if st.session_state.get("replay_key") != replay_key:
+        st.session_state.update(replay_key=replay_key, replay_step=0, replay_playing=False)
+    crossing = timeline.first_crossing(replay_machine, threshold)
+
+    controls = st.columns([1, 1, 1, 3])
+    playing = st.session_state["replay_playing"]
+    at_end = st.session_state["replay_step"] >= len(timeline) - 1
+    if controls[0].button("⏸ Pause" if playing else "▶ Play", key="replay_play",
+                          type="primary", width="stretch"):
+        if at_end:
+            st.session_state["replay_step"] = 0
+        st.session_state["replay_playing"] = not playing
+        st.rerun()
+    if controls[1].button("⏭ Step", key="replay_next", width="stretch", disabled=playing or at_end):
+        st.session_state["replay_step"] += 1
+    if controls[2].button("⏮ Reset", key="replay_reset", width="stretch"):
+        st.session_state.update(replay_step=0, replay_playing=False)
+        st.rerun()
+
+    @st.fragment(run_every=1 / speed if st.session_state["replay_playing"] else None)
+    def replay_view():
+        step = st.session_state["replay_step"]
+        if st.session_state["replay_playing"]:
+            # Each timer tick (except the first, right after Play) advances one hour.
+            advanced = st.session_state.pop("replay_ticked", False)
+            if advanced:
+                step = min(step + 1, len(timeline) - 1)
+                st.session_state["replay_step"] = step
+            st.session_state["replay_ticked"] = True
+            stop = step >= len(timeline) - 1 or (
+                advanced and pause_on_cross and crossing is not None and step == crossing.step)
+            if stop:
+                st.session_state.update(replay_playing=False, replay_ticked=False)
+                st.rerun(scope="app")  # stops the timer
+        else:
+            st.session_state["replay_ticked"] = False
+
+        at = timeline.hours[step]
+        st.progress((step + 1) / len(timeline),
+                    text=f"Hour {step + 1} of {len(timeline)} · data up to **{at:%Y-%m-%d %H:%M}**")
+        machines = timeline.machines_at(step)
+        watched = next(m for m in machines if m.machine_id == replay_machine)
+
+        left, right = st.columns([3, 2])
+        with left:
+            st.markdown(f"**Machine {replay_machine}: chance of each component failing in the "
+                        "next 24h**")
+            history = timeline.history(replay_machine, step) * 100
+            history["threshold"] = threshold * 100
+            st.line_chart(history, y_label="Failure chance (%)", x_label="Data time",
+                          height=260)
+            now = st.columns(4)
+            for col, c in zip(now, COMPONENTS):
+                col.metric(c, f"{watched.component_risk[c]:.1%}")
+        with right:
+            st.markdown("**Fleet at this hour**")
+            st.dataframe(
+                pd.DataFrame([{"Risk": LEVEL_BADGES[m.risk_level], "Machine": m.machine_id,
+                               "Riskiest part": m.top_component if m.risk_level != "low" else "—",
+                               "Chance": m.max_risk * 100} for m in machines]),
+                hide_index=True, width="stretch", height=300,
+                column_config={"Chance": st.column_config.ProgressColumn(
+                    "Chance", min_value=0, max_value=100, format="%.1f%%")})
+
+        if crossing is None:
+            st.caption(f"Machine {replay_machine} stays below {threshold:.0%} for the whole "
+                       "replay, so no recommendation is triggered.")
+            return
+        if step < crossing.step:
+            st.caption(f"Recommendation appears when machine {replay_machine} reaches "
+                       f"{threshold:.0%}.")
+            return
+
+        st.error(f"🚨 **Threshold crossed at {crossing.at:%Y-%m-%d %H:%M}**: machine "
+                 f"{replay_machine} {crossing.component} is "
+                 f"{'>99%' if crossing.probability > 0.99 else f'{crossing.probability:.0%}'} "
+                 "likely to fail in the next 24h."
+                 + (f" Why: {' · '.join(d.description for d in watched.top_drivers)}."
+                    if step == crossing.step and watched.top_drivers else ""))
+        frozen = tuple(files.items())
+        then = analysis_until(frozen, crossing.at, tuple(sorted(assumptions.items())))
+        best_then = then.interventions[replay_machine][0]
+        if best_then.lever == "do_nothing":
+            st.info("**Best action then: do nothing.** No action pays for itself.")
+        else:
+            st.success(f"**Best action then: {best_then.label}.** Costs "
+                       f"\\${best_then.cost:,.0f} and avoids \\${best_then.loss_avoided:,.0f} "
+                       f"of expected loss: a net benefit of **\\${best_then.net_benefit:,.0f}**.")
+        replay_recs = st.session_state.setdefault("replay_recs", {})
+        rec_key = (bundle_key, replay_machine, crossing.at, tuple(sorted(assumptions.items())))
+        if rec_key not in replay_recs:
+            with st.spinner("Gemini is reading the plant as it was at the crossing…"):
+                try:
+                    replay_recs[rec_key] = recommend(files_until(files, crossing.at),
+                                                     replay_machine, assumptions)
+                except Exception as exc:  # noqa: BLE001 - shown to the operator, not swallowed
+                    gemini_unavailable(exc)
+                    replay_recs[rec_key] = None
+        if replay_recs[rec_key] is not None:
+            st.markdown("**Gemini's recommendation at the crossing**")
+            show_recommendation(replay_recs[rec_key])
+        elif st.button("Ask Gemini again", key="replay_retry"):
+            replay_recs.pop(rec_key)
+            st.rerun(scope="fragment")
+
+    replay_view()
+
+# Alert times are shown in India Standard Time (Cloud Run's clock is UTC).
+IST = timezone(timedelta(hours=5, minutes=30), "IST")
+
+
+@st.cache_resource
+def slack_alert_state():
+    """Shared by every visitor: which risks were already alerted, and failed sends to retry."""
+    return AlertLedger(), {}
+
 ui.section("bell", "Alerts", "Tell the team on Slack or email which machines need action.",
            ui.AMBER)
 try:
@@ -208,28 +391,56 @@ if alert_config is not None:
         with st.expander(f"Alert preview: {alert_subject(alert)}"):
             st.text(format_email(alert, alert_config.email_from or "factorymind",
                                  alert_config.email_to or ["(no recipients)"]).get_content())
-        if not alert_config.channels:
-            st.caption("Set `SLACK_WEBHOOK_URL` and/or the `ALERT_EMAIL_TO` and `SMTP_*` "
-                       "settings to send this alert to Slack or email (see the README).")
+        # Slack: sent automatically, once per dataset, machine and component, for every visitor.
+        if not alert_config.slack_enabled:
+            st.caption("Set `SLACK_WEBHOOK_URL` to send alerts to Slack automatically "
+                       "(see the README's Slack setup).")
         else:
-            sent = st.session_state.setdefault("alerts_sent", set())
+            ledger, failures = slack_alert_state()
+            keys = {m.machine_id: (bundle_key, m.machine_id, m.top_component)
+                    for m in alert.machines}
+            due = [m for m in alert.machines if ledger.should_alert(keys[m.machine_id],
+                                                                       datetime.now(IST))
+                   and keys[m.machine_id] not in failures]
+            if due:
+                try:
+                    send_slack(Alert(machines=due, min_level=alert.min_level),
+                               alert_config.slack_webhook_url)
+                    for m in due:
+                        ledger.record(keys[m.machine_id], datetime.now(IST))
+                    _log.info("Slack alert sent for machines %s", [m.machine_id for m in due])
+                except Exception as exc:  # noqa: BLE001 - shown and logged, then retryable
+                    _log.warning("Slack alert failed: %s", exc)
+                    for m in due:
+                        failures[keys[m.machine_id]] = str(exc)
+            for m in alert.machines:
+                key = keys[m.machine_id]
+                if key in failures:
+                    st.error(f"Couldn't send the Slack alert for machine {m.machine_id}: "
+                             f"{failures[key]}")
+                    if st.button("Retry sending to Slack", key=f"retry-{m.machine_id}"):
+                        failures.pop(key, None)
+                        st.rerun()
+                else:
+                    sent_at = ledger.sent_at(key)
+                    st.success(f"✅ Alert sent to Slack at {sent_at:%H:%M} IST for machine "
+                               f"{m.machine_id} ({m.top_component} {alert_pct(m.failure_probability)} likely to "
+                               "fail in the next 24h)." if sent_at else "Alert pending.")
+        # Email stays a deliberate, button-triggered send.
+        if alert_config.email_enabled:
+            email_only = replace(alert_config, slack_webhook_url=None)
+            sent = st.session_state.setdefault("emails_sent", set())
             alert_key = (bundle_key, tuple(sorted(assumptions.items())))
-            label = "Send alert to " + " and ".join(alert_config.channels)
             if alert_key in sent:
-                st.caption("✅ Alert already sent for this data and these assumptions.")
-                label = "Send again"
-            if st.button(label, key="send-alert"):
+                st.caption("✅ Email already sent for this data and these assumptions.")
+            elif st.button("Send alert by email", key="send-email"):
                 with st.spinner("Sending…"):
-                    results = send_alert(alert, alert_config)
-                for channel, error in results.items():
-                    if error:
-                        _log.warning("Alert to %s failed: %s", channel, error)
-                        st.error(f"Couldn't send to {channel}: {error}")
-                    else:
-                        _log.info("Alert sent to %s", channel)
-                        st.success(f"Sent to {channel}.")
-                if not any(results.values()):
+                    error = send_alert(alert, email_only).get("email")
+                if error:
+                    st.error(f"Couldn't send the email: {error}")
+                else:
                     sent.add(alert_key)
+                    st.success("Email sent.")
 
 ui.section("gear", "Machine detail", "Pick a machine to see its quality, cascade and options.")
 by_id = {m.machine_id: m for m in report.machines}
@@ -478,20 +689,7 @@ if rec is None:
     st.caption("Gemini reads the same analysis through tools and explains the best action. "
                "Every figure it quotes is checked against what the tools returned.")
 else:
-    with st.container(border=True):
-        st.markdown(rec.text.replace("$", "\\$"))
-    if rec.unverified_numbers:
-        st.warning("Couldn't verify these figures against the tool results: "
-                   + ", ".join(rec.unverified_numbers))
-    else:
-        st.caption(f"✅ Every figure was checked against the tool results"
-                   f"{' after one rewrite' if rec.retried else ''} · {rec.model}"
-                   f"{' · ⚡ cached answer, no new Gemini call' if rec.cached else ''}")
-    with st.expander(f"Tools Gemini used ({len(rec.tool_calls)})"):
-        for call in rec.tool_calls:
-            args = ", ".join(f"{k}={v}" for k, v in call.args.items())
-            st.markdown(f"**`{call.name}({args})`**")
-            st.json(call.result, expanded=False)
+    show_recommendation(rec)
 
 ui.section("chat", "Ask FactoryMind", "Follow-up questions, answered from the same analysis.")
 # One conversation per bundle and set of assumptions: if either changes, the data did too.

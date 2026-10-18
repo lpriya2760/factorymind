@@ -11,7 +11,7 @@ import json
 
 from stream_common import add_common_args, read_bundle, status_line
 
-from factorymind.stream import (ALERTS_TOPIC, TELEMETRY_TOPIC, LiveMonitor, LocalBus,
+from factorymind.pubsub import (ALERTS_TOPIC, TELEMETRY_TOPIC, LiveMonitor, LocalBus,
                                 alert_message, decode, encode, replay, split_bundle)
 
 

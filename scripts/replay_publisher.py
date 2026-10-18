@@ -12,15 +12,15 @@ import argparse
 
 from stream_common import add_common_args, project_id, read_bundle
 
-from factorymind.stream import TELEMETRY_TOPIC, PubSubBus, replay, split_bundle
+from factorymind.pubsub import TELEMETRY_TOPIC, PubSubBus, replay, split_bundle
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     add_common_args(parser)
-    parser.add_argument("--seconds-per-hour", type=float, default=1.0,
-                        help="real seconds per simulated hour (default 1)")
+    parser.add_argument("--seconds-per-hour", type=float, default=2.0,
+                        help="real seconds per simulated hour (default 2)")
     parser.add_argument("--topic", default=TELEMETRY_TOPIC)
     args = parser.parse_args()
 

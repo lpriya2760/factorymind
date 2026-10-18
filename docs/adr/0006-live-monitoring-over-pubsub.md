@@ -1,7 +1,7 @@
 # ADR 0006: Live monitoring replays real sensor data through Pub/Sub
 
 **Status:** accepted (October 2026)
-**Code:** `factorymind/stream.py`, `scripts/pubsub_setup.sh`, `scripts/replay_publisher.py`, `scripts/monitor.py`, `scripts/stream_demo.py`
+**Code:** `factorymind/pubsub.py`, `scripts/pubsub_setup.sh`, `scripts/replay_publisher.py`, `scripts/monitor.py`, `scripts/stream_demo.py`
 
 ## Context
 
@@ -25,7 +25,7 @@ replay_publisher ──► factorymind-telemetry ──► monitor ──► fac
 
 ## Result on the demo data
 
-Replaying the last 36 hours of `comp2_failure_building`: all ten machines stay green until **2015-05-19 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99%, and the monitor publishes one alert: expected loss $22,623 (range $22,016–$23,349), best action "Replace comp2, machine 47 covers". Each hour's analysis takes about 0.6s, so a replay at 1 second per hour keeps up.
+Replaying the last 36 hours of `comp2_failure_building`: all ten machines stay green until **2015-05-19 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99%, and the monitor publishes one alert: expected loss $22,623 (range $22,016–$23,349), best action "Replace comp2, machine 47 covers". Each hour's analysis takes about 0.6s, so the publisher's default of 2 seconds per hour leaves headroom.
 
 ## Consequences
 

@@ -272,22 +272,79 @@ Below the recommendation, a chat answers follow-up questions about the uploaded 
 
 ## Slack and email alerts
 
-Below the risk table, **🔔 Alerts** previews a message listing every machine at high risk: its riskiest part and failure chance, the expected loss from the cascade, and the best action from the simulator. **Send alert** delivers it to Slack, email or both (`factorymind/alerts.py`). Nothing is sent automatically, and the message contains only figures already on screen.
+Below the risk table, **🔔 Alerts** lists every machine at high risk: its riskiest part and failure chance, the expected loss from the cascade, and the best action from the simulator (`factorymind/alerts.py`).
 
-Configure the channels with environment variables (locally in `.env`):
+- **Slack: automatic.** As soon as an analysis finds a high-risk machine, the alert goes to Slack, and the app shows **"✅ Alert sent to Slack at HH:MM"**. Each machine and component is alerted **once per dataset**, however many people open it. A failed send is shown with a **Retry** button.
+- **Email: on request.** **Send alert by email** delivers the same message.
+
+### Real-time alerts from streamed data
+
+`factorymind/pubsub.py` watches data **as it arrives**:
+1. `RiskMonitor.ingest()` takes new telemetry and error readings and keeps a rolling 48h window per machine.
+2. It re-scores the machines that got new data with the failure model.
+3. It raises an alert **the moment** a machine crosses into high risk. The alert includes the component, its failure chance, the drivers, the expected loss and the best action.
+
+**One alert per risk episode.** A machine that stays risky isn't alerted again. It re-arms once it drops back below high risk, but not within 6 hours of the last alert, so a machine hovering at the threshold can't flap.
+
+**Try it** by replaying a demo bundle hour by hour as if it were live:
+
+```bash
+uv run python scripts/stream_replay.py demo_bundles/comp2_failure_building.zip
+```
+
+- **Machine 90 / comp2** is flagged at **06:00 on 2015-05-19** (data time), a **day before** its real failure at 06:00 on 2015-05-20.
+- **Exactly one** Slack alert is sent.
+- `--dry-run` prints the alerts instead of sending them, and `--interval` sets the seconds between streamed hours.
+
+A production feed would publish readings to Pub/Sub and push them to a Cloud Run endpoint that calls `ingest()`. That's a follow-up ([#27](https://github.com/lpriya2760/factorymind/issues/27)).
+
+### Slack setup
+
+1. Go to https://api.slack.com/apps → **Create New App** → **From scratch**. Name it `FactoryMind` and pick your workspace.
+2. In the app's settings, open **Incoming Webhooks** and switch on **Activate Incoming Webhooks**.
+3. Click **Add New Webhook to Workspace**, choose a channel (for example `#factorymind-alerts`), and click **Allow**.
+4. Copy the webhook URL (`https://hooks.slack.com/services/…`). **Anyone with this URL can post to your channel; treat it like a password.**
+5. **Locally:** add `SLACK_WEBHOOK_URL=https://hooks.slack.com/services/…` to `.env` (git-ignored).
+6. **On Cloud Run:** store it in Secret Manager and let the service read it:
+
+   ```bash
+   gcloud services enable secretmanager.googleapis.com
+   ```
+
+   ```bash
+   printf '%s' 'https://hooks.slack.com/services/…' | gcloud secrets create factorymind-slack-webhook --data-file=-
+   ```
+
+   ```bash
+   gcloud secrets add-iam-policy-binding factorymind-slack-webhook --member="serviceAccount:<PROJECT_NUMBER>-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+   ```
+
+   Then run `./scripts/deploy.sh`. It attaches the secret automatically when it exists.
+
+### Email setup
 
 | Variable | Meaning |
 |---|---|
-| `SLACK_WEBHOOK_URL` | A Slack [incoming webhook](https://api.slack.com/messaging/webhooks) URL |
 | `ALERT_EMAIL_TO` | Recipients, comma-separated |
 | `ALERT_EMAIL_FROM` | Sender address (defaults to `SMTP_USER`) |
 | `SMTP_HOST`, `SMTP_PORT` | Mail server; port 587 (default) uses STARTTLS, 465 uses TLS |
-| `SMTP_USER`, `SMTP_PASSWORD` | Mail login. For Gmail, use an [app password](https://support.google.com/accounts/answer/185833) |
+| `SMTP_USER` | Mail login |
+| `SMTP_PASSWORD` | Mail password. For Gmail, use an [app password](https://support.google.com/accounts/answer/185833). On Cloud Run, store it in Secret Manager as `factorymind-smtp-password`. |
 | `ALERT_MIN_LEVEL` | `high` (default) or `medium` |
 
-Email needs a recipient, a sender and a host; either channel works on its own. If one channel fails, the other is still sent, and the error is shown and logged. On Cloud Run, export the variables before running `deploy.sh` and it passes them to the service.
+**Secrets never go into plain settings.** `deploy.sh` passes the non-secret variables above as normal settings, and the Slack webhook and SMTP password only through Secret Manager.
 
-**Tests** replace Slack and the mail server with fakes, so they run offline.
+**Tests** replace Slack and the mail server with fakes, so they run offline. This includes replaying all three demo bundles: one alert for the comp2 bundle, two for the two-machines bundle, and none for the healthy fleet.
+
+## Replay in the app
+
+The **Replay** section steps through the bundle's last hours of telemetry (48 by default), one hour at a time, as if the readings were arriving live. It shows the risk of each component of the machine you're watching, and the whole fleet's risk at that hour.
+
+- **Play, Pause, Step and Reset**, at 1, 2, 4 or 8 hours a second.
+- **Threshold** (50% by default): when any component of the watched machine reaches it, playback pauses and the recommendation appears. That is the best action from re-analysing the data *up to that hour*, plus Gemini's checked recommendation.
+- **No lookahead:** the model's features only look back, so each replayed hour's risk is exactly what a prediction made then would say. A test checks this against `analyze()` on the data cut at that hour.
+
+On `comp2_failure_building`, machine 90's comp2 risk stays under 0.2% for 35 hours. Then, at **19 May 06:00**, it jumps to 99.8%: "Replace comp2, machine 47 covers", a net benefit of $16,361, a day before the real failure. Code: [`factorymind/replay.py`](factorymind/replay.py).
 
 ## Live monitoring over Pub/Sub
 
@@ -297,7 +354,7 @@ FactoryMind can also watch a **stream** of sensor readings and raise an alert th
 replay_publisher ──► factorymind-telemetry ──► monitor ──► factorymind-alerts ──► BigQuery / Slack / email
 ```
 
-- **The publisher** sends the last 36 hours of telemetry and error readings, one message per reading, one simulated hour per second.
+- **The publisher** sends the last 36 hours of telemetry and error readings, one message per reading, one simulated hour every 2 seconds (`--seconds-per-hour` changes it).
 - **The monitor** re-runs the full analysis each time every machine has reported for the next hour. It ignores duplicate and out-of-order deliveries. When a machine first reaches high risk, it publishes a JSON alert with the riskiest part, expected loss, loss range and best action.
 
 On the `comp2_failure_building` demo, all machines stay green until **19 May 06:00**, when machine 90 logs real error2 and error3 codes. Its comp2 risk jumps to >99% and one alert fires: $22,623 expected loss, "Replace comp2, machine 47 covers".
@@ -314,7 +371,7 @@ uv run python scripts/stream_demo.py --seconds-per-hour 0.5
 gcloud auth application-default login          # once
 ./scripts/pubsub_setup.sh                      # once: topics + subscriptions (WITH_BIGQUERY=1 adds an alerts table)
 uv run --group stream python scripts/monitor.py                               # terminal 1
-uv run --group stream python scripts/replay_publisher.py --seconds-per-hour 1 # terminal 2
+uv run --group stream python scripts/replay_publisher.py                     # terminal 2
 gcloud pubsub subscriptions pull factorymind-alerts-tail --auto-ack           # see the alert
 ```
 
