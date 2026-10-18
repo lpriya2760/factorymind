@@ -278,6 +278,16 @@ def unverified_numbers(answer: str, sources: list[str]) -> list[str]:
     return [raw for raw, v in _numbers(answer) if v not in known and v not in roundings]
 
 
+# Gemini cites the tool behind each figure, e.g. "$18,176 [simulate_interventions]" (rule 2). The
+# citations keep it honest, but they're noise for a reader; the app lists the tools used instead.
+_CITATION = re.compile(r"\s*\[(?:[a-z]+_[a-z_]+(?:\([^\]]*\))?(?:\s*[,;]\s*)?)+\]")
+
+
+def without_citations(text: str) -> str:
+    """The answer for display: tool citations removed, the text otherwise unchanged."""
+    return _CITATION.sub("", text)
+
+
 # --- running the agent ------------------------------------------------------------------------
 
 @dataclass

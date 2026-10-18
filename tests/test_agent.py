@@ -11,7 +11,8 @@ from google.adk.models.llm_response import LlmResponse
 from google.genai import errors, types
 
 from factorymind import agent
-from factorymind.agent import AnalysisSession, make_tools, recommend, unverified_numbers
+from factorymind.agent import (AnalysisSession, make_tools, recommend, unverified_numbers,
+                               without_citations)
 
 DEMO = Path(__file__).parent.parent / "demo_bundles"
 
@@ -200,3 +201,14 @@ def test_interventions_tool_includes_reroute_details(files):
     tool = {t.__name__: t for t in make_tools(AnalysisSession(files))}["simulate_interventions"]
     reroute = next(o for o in tool(90)["options"] if o["details"].get("target_machine"))
     assert reroute["details"]["target_keeps_its_own_schedule"] is True
+
+
+def test_tool_citations_are_hidden_from_the_reader():
+    answer = ("Replace comp2, machine 47 covers [simulate_interventions]. Net benefit $18,176 "
+              "[simulate_interventions], a 99.8% chance [get_machine_risk], loss $163 "
+              "[get_cascade, simulate_interventions]; see [get_production_plan(90)].")
+    assert without_citations(answer) == ("Replace comp2, machine 47 covers. Net benefit $18,176, "
+                                         "a 99.8% chance, loss $163; see.")
+    # Only tool-style citations go: other brackets and the figures themselves stay.
+    assert without_citations("Machines [90] and [Order O-1] cost $5") == \
+        "Machines [90] and [Order O-1] cost $5"

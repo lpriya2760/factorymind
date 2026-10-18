@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from factorymind.bundle import MAX_BUNDLE_BYTES, TABLES, BundleValidationError
 from factorymind import quality
-from factorymind.agent import Chat, recommend
+from factorymind.agent import Chat, recommend, without_citations
 from factorymind.alerts import (Alert, AlertConfig, build_alert, format_email, send_alert,
                                 send_slack)
 from factorymind.alerts import _pct as alert_pct
@@ -279,7 +279,7 @@ def gemini_unavailable(exc: Exception) -> None:
 
 def show_recommendation(rec) -> None:
     with st.container(border=True):
-        st.markdown(rec.text.replace("$", "\\$"))
+        st.markdown(without_citations(rec.text).replace("$", "\\$"))
     if rec.unverified_numbers:
         st.warning("Couldn't verify these figures against the tool results: "
                    + ", ".join(rec.unverified_numbers))
@@ -780,7 +780,7 @@ st.caption(f"Ask follow-up questions. Gemini answers with the same tools and eve
 
 
 def show_reply(reply):
-    st.markdown(reply.text.replace("$", "\\$"))
+    st.markdown(without_citations(reply.text).replace("$", "\\$"))
     if reply.unverified_numbers:
         st.warning("Couldn't verify: " + ", ".join(reply.unverified_numbers))
     else:
