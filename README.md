@@ -177,6 +177,17 @@ If it keeps running, its degrading quality costs $10,890 of excess scrap. Expect
 
 **Why it's built this way:** see [ADR 0002](docs/adr/0002-cascade-simulation.md). It covers each modelling choice and the two demo-data fixes the cascade needed.
 
+### Loss range (Monte Carlo)
+
+Next to the expected loss, the cascade shows a **P10/P50/P90 range** from 1,000 seeded Monte Carlo draws. Each draw decides whether the machine fails (with the predicted chance) and, if it does, in which hour of the next 24h. Machine 90 reads **"$21,999–$24,862, most likely $24,374"**: an early failure costs less because the repair stops its scrap sooner.
+
+- **Reproducible:** the same data and seed give the same range.
+- **Honest percentiles:** each one is an outcome that actually occurs, not an interpolation between "fails" and "keeps running".
+- **Rare failures:** when a machine fails in fewer than 1 in 10 weeks, all three percentiles are its keeps-running loss. The app then explains that the expected loss is higher because of the small chance of an expensive failure.
+- **Fast:** it adds about 0.1–0.2s to an analysis.
+
+The expected loss, the intervention ranking and Gemini's answers are unchanged. See [ADR 0005](docs/adr/0005-monte-carlo-loss-range.md).
+
 ## What to do: the intervention simulator
 
 For each machine, FactoryMind evaluates five options. Each one **re-runs the cascade with changed inputs** (`factorymind/interventions.py`):
@@ -258,6 +269,25 @@ Below the recommendation, a chat answers follow-up questions about the uploaded 
 - **It checks every number.** Each figure must come from a tool result anywhere in the conversation. It gets one rewrite if not, and anything still unverified is flagged.
 - **It says when it can't answer.** For a scenario the tools don't simulate (such as waiting until the weekend), it starts with "I can't answer that from the available data", says what's missing, and gives the closest figures the tools do have.
 - **It starts fresh when the data changes.** A new bundle or changed assumptions start a new conversation.
+
+## Slack and email alerts
+
+Below the risk table, **🔔 Alerts** previews a message listing every machine at high risk: its riskiest part and failure chance, the expected loss from the cascade, and the best action from the simulator. **Send alert** delivers it to Slack, email or both (`factorymind/alerts.py`). Nothing is sent automatically, and the message contains only figures already on screen.
+
+Configure the channels with environment variables (locally in `.env`):
+
+| Variable | Meaning |
+|---|---|
+| `SLACK_WEBHOOK_URL` | A Slack [incoming webhook](https://api.slack.com/messaging/webhooks) URL |
+| `ALERT_EMAIL_TO` | Recipients, comma-separated |
+| `ALERT_EMAIL_FROM` | Sender address (defaults to `SMTP_USER`) |
+| `SMTP_HOST`, `SMTP_PORT` | Mail server; port 587 (default) uses STARTTLS, 465 uses TLS |
+| `SMTP_USER`, `SMTP_PASSWORD` | Mail login. For Gmail, use an [app password](https://support.google.com/accounts/answer/185833) |
+| `ALERT_MIN_LEVEL` | `high` (default) or `medium` |
+
+Email needs a recipient, a sender and a host; either channel works on its own. If one channel fails, the other is still sent, and the error is shown and logged. On Cloud Run, export the variables before running `deploy.sh` and it passes them to the service.
+
+**Tests** replace Slack and the mail server with fakes, so they run offline.
 
 ## Costs and guardrails
 

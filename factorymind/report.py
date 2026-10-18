@@ -84,6 +84,12 @@ class Cascade:
     if_failure: ScenarioOutcome
     if_no_failure: ScenarioOutcome
     expected_loss: float  # weighted by failure_probability
+    # The week's loss across Monte Carlo draws of whether and when it fails (see
+    # factorymind.cascade.loss_range): 10th, 50th and 90th percentiles.
+    loss_p10: float
+    loss_p50: float
+    loss_p90: float
+    loss_samples: int
 
 
 @dataclass(frozen=True)
