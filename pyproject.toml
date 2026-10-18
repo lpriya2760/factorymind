@@ -5,6 +5,7 @@ description = "Predict machine failures, trace their cascade to quality, invento
 requires-python = ">=3.12"
 dependencies = [
     "google-adk>=2.11.0",
+    "google-cloud-pubsub>=2.25",
     "numpy>=2.5.3",
     "pandas>=3.0.6",
     "python-dotenv>=1.2.4",
@@ -16,9 +17,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
-]
-stream = [
-    "google-cloud-pubsub>=2.25",
 ]
 
 [tool.uv]

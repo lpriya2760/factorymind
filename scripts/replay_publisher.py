@@ -5,7 +5,7 @@ Predictive Maintenance data) to the factorymind-telemetry topic, one simulated h
 --seconds-per-hour seconds. Start scripts/monitor.py first (or any time: the subscription
 keeps the messages).
 
-    uv run --group stream python scripts/replay_publisher.py
+    uv run python scripts/replay_publisher.py
 """
 
 import argparse

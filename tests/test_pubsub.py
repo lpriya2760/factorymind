@@ -9,8 +9,8 @@ import pytest
 
 from factorymind.bundle import load_bundle
 from factorymind.engine import analyze
-from factorymind.pubsub import (ALERTS_TOPIC, TELEMETRY_TOPIC, LiveMonitor, LocalBus,
-                                alert_message, decode, encode, replay, split_bundle)
+from factorymind.pubsub import (ALERTS_TOPIC, TELEMETRY_TOPIC, LiveMonitor, LiveStream,
+                                LocalBus, alert_message, decode, encode, replay, split_bundle)
 
 DEMO = Path(__file__).parent.parent / "demo_bundles" / "comp2_failure_building.zip"
 REPLAY_HOURS = 20  # machine 90 turns high-risk 12h before the end of the data
@@ -142,3 +142,47 @@ def test_pipeline_over_a_bus_publishes_a_json_alert_with_the_loss_range(split):
     m = alert["machines"][0]
     assert m["machine_id"] == 90 and m["top_component"] == "comp2"
     assert m["loss_p10"] <= m["loss_p50"] <= m["loss_p90"]
+
+
+# --- a live run in the app ------------------------------------------------------------------
+
+def wait_until_done(stream, seconds=30):
+    import time
+    deadline = time.monotonic() + seconds
+    while not stream.done and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert stream.done
+
+
+def test_live_stream_ends_with_the_full_upload(files):
+    """Publishing and receiving every hour leaves the app with exactly the uploaded data."""
+    bus = LocalBus()
+    stream = LiveStream(files, bus, replay_hours=REPLAY_HOURS, seconds_per_hour=0).start()
+    wait_until_done(stream)
+    assert stream.error is None
+    assert stream.hours_received == len(stream.hours) == REPLAY_HOURS
+    assert stream.published == stream.received == len(bus.messages[TELEMETRY_TOPIC])
+    assert stream.as_of == load_bundle(files).tables["telemetry"]["datetime"].max()
+    live = {m.machine_id: m.risk_level for m in analyze(stream.bundle()).machines}
+    full = {m.machine_id: m.risk_level for m in analyze(files).machines}
+    assert live == full and live[90] == "high"
+
+
+def test_live_stream_starts_from_the_history_and_only_reads_its_own_run(files):
+    bus = LocalBus()
+    other = []
+    bus.open_subscription(TELEMETRY_TOPIC, "someone-else", lambda d, a: other.append(d))
+    stream = LiveStream(files, bus, replay_hours=REPLAY_HOURS, seconds_per_hour=0)
+    before = {m.machine_id: m.risk_level for m in analyze(stream.bundle()).machines}
+    assert before[90] == "low" and stream.hours_received == 0  # not yet failing at the cut
+    stream.start()
+    wait_until_done(stream)
+    assert other == [] and stream.received > 0
+    assert all(a["run_id"] == stream.run_id for _, a in bus.messages[TELEMETRY_TOPIC])
+
+
+def test_stopping_a_live_stream_stops_publishing(files):
+    stream = LiveStream(files, LocalBus(), replay_hours=REPLAY_HOURS, seconds_per_hour=5).start()
+    stream.stop()
+    wait_until_done(stream, 5)
+    assert stream.hours_received < len(stream.hours)
