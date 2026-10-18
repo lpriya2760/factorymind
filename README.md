@@ -2,7 +2,7 @@
 
 Predict machine failures, trace their cascade to quality, inventory and customer orders, simulate interventions, and have Gemini recommend the smallest action that prevents the largest loss.
 
-Built for the Google AI Builder Cup 2026 (Manufacturing). Spec: [#1](https://github.com/lpriya2760/factorymind/issues/1).
+Built for the Google AI Builder Cup 2026 (Manufacturing). Spec: [SPEC.md](SPEC.md) (also issue [#1](https://github.com/lpriya2760/factorymind/issues/1)).
 
 ## Run locally
 
